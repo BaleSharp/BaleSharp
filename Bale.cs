@@ -269,7 +269,7 @@ namespace Bale
             var tmp = JsonConvert.DeserializeObject<ApiResponse<Chat>>(res);
             return tmp.Result;
         }
-        
+
         public static async Task<Message> SendMessage(this Client client, int ChatID, string text, int? reply_to_id = null)
         {
             var dict = new Dictionary<string, object>
@@ -277,7 +277,7 @@ namespace Bale
                 {"chat_id", ChatID},
                 {"text", text}
             };
-            if(reply_to_id != null)
+            if (reply_to_id != null)
             {
                 dict.Add("reply_to_message_id", reply_to_id);
             }
@@ -290,9 +290,14 @@ namespace Bale
             Message m = await client.SendMessage(Convert.ToInt32(msg.chat.id), text, msg.message_id);
             return m;
         }
-        public static async Task<Update[]> GetUpdates(this Client client)
+        public static async Task<Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
         {
-            string res = await client.ExecuteAsync("getUpdates");
+            var dict = new Dictionary<string, object>
+            {
+                {"offset", offset},
+                {"timout", timout}
+            };
+            string res = await client.ExecuteAsync("getUpdates", dict);
             var u = JsonConvert.DeserializeObject<ApiResponse<Update[]>>(res);
             return u.Result;
         }
