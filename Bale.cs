@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 
-namespace Bale.net
+namespace Bale
 {
 
     public class PhotoSize
@@ -214,7 +214,20 @@ namespace Bale.net
         public string Token => _token;
         public string BaseUrl => baseUrl;
     }
+    public class ApiResponse<T>
+    {
+        [JsonProperty("ok")]
+        public bool Ok { get; set; }
 
+        [JsonProperty("result")]
+        public T Result { get; set; }
+
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
+        [JsonProperty("error_code")]
+        public int? ErrorCode { get; set; }
+    }
     public static class Bot
     {
         private static readonly HttpClient _client = new HttpClient();
@@ -222,13 +235,16 @@ namespace Bale.net
         public static async Task<string> ExecuteAsync(this Client client, string method, Dictionary<string, object>? parameters = null)
         {
             string url = $"{client.BaseUrl}{client.Token}/{method}";
-            if (parameters.Count != 0)
+
+            if (parameters != null && parameters.Count != 0)
             {
                 url += "?";
                 foreach (var param in parameters)
                 {
                     url += $"{param.Key}={param.Value}&";
                 }
+                // Remove the trailing '&' if parameters were added
+                url = url.TrimEnd('&');
             }
 
             HttpResponseMessage res = await _client.GetAsync(url);
@@ -245,8 +261,14 @@ namespace Bale.net
             };
 
             string res = await client.ExecuteAsync("sendMessage", dict);
-            Message m = JsonConvert.DeserializeObject<Message>(res);
-            return m;
+            var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            return m.Result;
+        }
+        public static async Task<Update[]> GetUpdates(this Client client)
+        {
+            string res = await client.ExecuteAsync("getUpdates");
+            var u = JsonConvert.DeserializeObject<ApiResponse<Update[]>>(res);
+            return u.Result;
         }
     }
 }

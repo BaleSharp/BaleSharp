@@ -1,13 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-  </ItemGroup>
+		<!-- NuGet Package Metadata -->
+		<PackageId>BaleSharp</PackageId>
+		<Version>1.2.1</Version>
+		<Authors>CodeWizaard</Authors>
+		<Company>Aladdin Team</Company>
+		<PackageDescription>a up to date and good package for making bots in Bale messager</PackageDescription>
+		<PackageTags>json;bots;telegram;messager;bale</PackageTags>
+		<PackageProjectUrl>https://github.com/Code-Wizaard/BaleSharp</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Code-Wizaard/BaleSharp.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	</ItemGroup>
 
 </Project>
