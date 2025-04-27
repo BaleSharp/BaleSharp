@@ -252,17 +252,43 @@ namespace Bale
             string content = await res.Content.ReadAsStringAsync();
             return content;
         }
-        public static async Task<Message> SendMessage(this Client client, int ChatID, string text)
+
+        public static async Task<User> getMe(this Client client)
+        {
+            string res = await client.ExecuteAsync("getme");
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<User>>(res);
+            return tmp.Result;
+        }
+        public static async Task<Chat> getChat(this Client client, int ChatID)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID}
+            };
+            string res = await client.ExecuteAsync("getChat", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Chat>>(res);
+            return tmp.Result;
+        }
+        
+        public static async Task<Message> SendMessage(this Client client, int ChatID, string text, int? reply_to_id = null)
         {
             var dict = new Dictionary<string, object>
             {
                 {"chat_id", ChatID},
                 {"text", text}
             };
-
+            if(reply_to_id != null)
+            {
+                dict.Add("reply_to_message_id", reply_to_id);
+            }
             string res = await client.ExecuteAsync("sendMessage", dict);
             var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
             return m.Result;
+        }
+        public static async Task<Message> reply_to(this Client client, Message msg, string text)
+        {
+            Message m = await client.SendMessage(Convert.ToInt32(msg.chat.id), text, msg.message_id);
+            return m;
         }
         public static async Task<Update[]> GetUpdates(this Client client)
         {
