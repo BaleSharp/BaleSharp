@@ -349,7 +349,7 @@ namespace Bale
             var tmp = JsonConvert.DeserializeObject<ApiResponse<User>>(res);
             return tmp.Result;
         }
-        public static async Task<Chat> getChat(this Client client, int ChatID)
+        public static async Task<Chat> getChat(this Client client, long ChatID)
         {
             var dict = new Dictionary<string, object>
             {
@@ -360,7 +360,7 @@ namespace Bale
             return tmp.Result;
         }
 
-        public static async Task<Message> SendMessage(this Client client, int ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
+        public static async Task<Message> SendMessage(this Client client, long ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
         {
             var dict = new Dictionary<string, object>
             {
@@ -393,7 +393,7 @@ namespace Bale
         
         public static async Task<Message> reply_to(this Client client, Message msg, string text, object? reply_markup = null)
         {
-            Message m = await client.SendMessage(Convert.ToInt32(msg.chat.id), text, reply_markup, msg.message_id);
+            Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.message_id);
             return m;
         }
         public static async Task<Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
