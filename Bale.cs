@@ -228,6 +228,92 @@ namespace Bale
         [JsonProperty("error_code")]
         public int? ErrorCode { get; set; }
     }
+    public class ReplyKeyboardBuilder
+    {
+        private List<List<KeyboardButton>> _keyboard;
+        private List<KeyboardButton> _currentRow;
+
+        public ReplyKeyboardBuilder()
+        {
+            _keyboard = new List<List<KeyboardButton>>();
+            _currentRow = new List<KeyboardButton>();
+        }
+
+        public ReplyKeyboardBuilder AddButton(string text, bool requestContact = false, bool requestLocation = false, WebAppInfo webApp = null)
+        {
+            _currentRow.Add(new KeyboardButton
+            {
+                text = text,
+                request_contact = requestContact ? true : null,
+                request_location = requestLocation ? true : null,
+                web_app = webApp
+            });
+            return this;
+        }
+
+        public ReplyKeyboardBuilder NewRow()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+                _currentRow = new List<KeyboardButton>();
+            }
+            return this;
+        }
+
+        public ReplyKeyboardMarkup Build()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+            }
+            return new ReplyKeyboardMarkup { keyboard = _keyboard };
+        }
+    }
+
+    public class InlineKeyboardBuilder
+    {
+        private List<List<InlineKeyboardButton>> _keyboard;
+        private List<InlineKeyboardButton> _currentRow;
+
+        public InlineKeyboardBuilder()
+        {
+            _keyboard = new List<List<InlineKeyboardButton>>();
+            _currentRow = new List<InlineKeyboardButton>();
+        }
+
+        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, WebAppInfo webApp = null, string copyText = null)
+        {
+            _currentRow.Add(new InlineKeyboardButton
+            {
+                text = text,
+                callback_data = callbackData,
+                url = url,
+                web_app = webApp,
+                copy_text = copyText != null ? new CopyTextButton { text = copyText } : null
+            });
+            return this;
+        }
+
+        public InlineKeyboardBuilder NewRow()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+                _currentRow = new List<InlineKeyboardButton>();
+            }
+            return this;
+        }
+
+        public InlineKeyboardMarkup Build()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+            }
+            return new InlineKeyboardMarkup { inline_keyboard = _keyboard };
+        }
+    }
     public static class Bot
     {
         private static readonly HttpClient _client = new HttpClient();
@@ -248,7 +334,11 @@ namespace Bale
             }
 
             HttpResponseMessage res = await _client.GetAsync(url);
-            res.EnsureSuccessStatusCode();
+            try { res.EnsureSuccessStatusCode(); }
+            catch
+            {
+                throw new Exception("sending request failed.");
+            }
             string content = await res.Content.ReadAsStringAsync();
             return content;
         }
@@ -270,7 +360,7 @@ namespace Bale
             return tmp.Result;
         }
 
-        public static async Task<Message> SendMessage(this Client client, int ChatID, string text, int? reply_to_id = null)
+        public static async Task<Message> SendMessage(this Client client, int ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
         {
             var dict = new Dictionary<string, object>
             {
@@ -281,13 +371,29 @@ namespace Bale
             {
                 dict.Add("reply_to_message_id", reply_to_id);
             }
+            if (reply_markup != null)
+            {
+                switch (reply_markup)
+                {
+                    case ReplyKeyboardMarkup reply:
+                    case InlineKeyboardMarkup inline:
+                        dict.Add("reply_markup", JsonConvert.SerializeObject(reply_markup));
+                        break;
+                    default:
+                        throw new ArgumentException(
+                            "reply_markup must be either ReplyKeyboardMarkup or InlineKeyboardMarkup",
+                            nameof(reply_markup)
+                        );
+                }
+            }
             string res = await client.ExecuteAsync("sendMessage", dict);
             var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
             return m.Result;
         }
-        public static async Task<Message> reply_to(this Client client, Message msg, string text)
+        
+        public static async Task<Message> reply_to(this Client client, Message msg, string text, object? reply_markup = null)
         {
-            Message m = await client.SendMessage(Convert.ToInt32(msg.chat.id), text, msg.message_id);
+            Message m = await client.SendMessage(Convert.ToInt32(msg.chat.id), text, reply_markup, msg.message_id);
             return m;
         }
         public static async Task<Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
@@ -297,6 +403,7 @@ namespace Bale
                 {"offset", offset},
                 {"timout", timout}
             };
+
             string res = await client.ExecuteAsync("getUpdates", dict);
             var u = JsonConvert.DeserializeObject<ApiResponse<Update[]>>(res);
             return u.Result;
