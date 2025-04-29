@@ -3,6 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Collections.Concurrent;
 
 namespace Bale
 {
@@ -155,6 +156,17 @@ namespace Bale
         public string inline_message_id { get; set; }
         public string data { get; set; }
     }
+    public class Update
+    {
+        public int update_id { get; set; }
+        public Message message { get; set; }
+        public Message edited_message { get; set; }
+        public CallbackQuery callback_query { get; set; }
+    }
+    public class Updates
+    {
+        public Update[] UpdateList { get; set; }
+    }
     public class Messages
     {
         public int id { get; set; }
@@ -167,6 +179,12 @@ namespace Bale
         public string? last_name { get; set; }
         public string? username { get; set; }
         public string? language_code { get; set; }
+    }
+
+    public class LabeledPrice
+    {
+        public string label { get; set; }
+        public int amount { get; set; }
     }
     public class Message
     {
@@ -193,18 +211,128 @@ namespace Bale
         public User? left_chat_member { get; set; }  // اختیاری  
         public InlineKeyboardButton? reply_markup { get; set; }  // اختیاری  
     }
+    public class ReplyKeyboardBuilder
+    {
+        private List<List<KeyboardButton>> _keyboard;
+        private List<KeyboardButton> _currentRow;
 
-    public class Update
-    {
-        public int update_id { get; set; }
-        public Message message { get; set; }
-        public Message edited_message { get; set; }
-        public CallbackQuery callback_query { get; set; }
+        public ReplyKeyboardBuilder()
+        {
+            _keyboard = new List<List<KeyboardButton>>();
+            _currentRow = new List<KeyboardButton>();
+        }
+
+        public ReplyKeyboardBuilder AddButton(string text, bool requestContact = false, bool requestLocation = false, WebAppInfo webApp = null)
+        {
+            _currentRow.Add(new KeyboardButton
+            {
+                text = text,
+                request_contact = requestContact ? true : null,
+                request_location = requestLocation ? true : null,
+                web_app = webApp
+            });
+            return this;
+        }
+
+        public ReplyKeyboardBuilder NewRow()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+                _currentRow = new List<KeyboardButton>();
+            }
+            return this;
+        }
+
+        public ReplyKeyboardMarkup Build()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+            }
+            return new ReplyKeyboardMarkup { keyboard = _keyboard };
+        }
     }
-    public class Updates
+    
+    public class InlineKeyboardBuilder
     {
-        public Update[] UpdateList { get; set; }
+        private List<List<InlineKeyboardButton>> _keyboard;
+        private List<InlineKeyboardButton> _currentRow;
+
+        public InlineKeyboardBuilder()
+        {
+            _keyboard = new List<List<InlineKeyboardButton>>();
+            _currentRow = new List<InlineKeyboardButton>();
+        }
+
+        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, WebAppInfo webApp = null, string copyText = null)
+        {
+            _currentRow.Add(new InlineKeyboardButton
+            {
+                text = text,
+                callback_data = callbackData,
+                url = url,
+                web_app = webApp,
+                copy_text = copyText != null ? new CopyTextButton { text = copyText } : null
+            });
+            return this;
+        }
+
+        public InlineKeyboardBuilder NewRow()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+                _currentRow = new List<InlineKeyboardButton>();
+            }
+            return this;
+        }
+
+        public InlineKeyboardMarkup Build()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+            }
+            return new InlineKeyboardMarkup { inline_keyboard = _keyboard };
+        }
     }
+    public static class StateMachine
+    {
+        private static readonly ConcurrentDictionary<int, string> _userStates = new ConcurrentDictionary<int, string>();
+
+        /// <summary>
+        /// Gets the current state for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>Current state or null if no state exists</returns>
+        public static string GetState(int userId)
+        {
+            return _userStates.TryGetValue(userId, out var state) ? state : null;
+        }
+
+        /// <summary>
+        /// Sets or updates the state for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <param name="state">New state value</param>
+        public static void SetState(int userId, string state)
+        {
+            _userStates.AddOrUpdate(userId, state, (_, __) => state);
+        }
+
+        /// <summary>
+        /// Deletes the state for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>True if state was deleted, false if user had no state</returns>
+        public static bool DeleteState(int userId)
+        {
+            return _userStates.TryRemove(userId, out _);
+        }
+    }
+
+    
     public class Client
     {
         protected readonly string _token;
@@ -253,7 +381,8 @@ namespace Bale
                             // Handle regular messages
                             if (OnMessage != null)
                             {
-                                await OnMessage(update.message);
+                                if (update.message.text?.StartsWith("/") != true)
+                                    await OnMessage(update.message);
                             }
 
                             // Handle commands
@@ -297,96 +426,7 @@ namespace Bale
         [JsonProperty("error_code")]
         public int? ErrorCode { get; set; }
     }
-    public class ReplyKeyboardBuilder
-    {
-        private List<List<KeyboardButton>> _keyboard;
-        private List<KeyboardButton> _currentRow;
-
-        public ReplyKeyboardBuilder()
-        {
-            _keyboard = new List<List<KeyboardButton>>();
-            _currentRow = new List<KeyboardButton>();
-        }
-
-        public ReplyKeyboardBuilder AddButton(string text, bool requestContact = false, bool requestLocation = false, WebAppInfo webApp = null)
-        {
-            _currentRow.Add(new KeyboardButton
-            {
-                text = text,
-                request_contact = requestContact ? true : null,
-                request_location = requestLocation ? true : null,
-                web_app = webApp
-            });
-            return this;
-        }
-
-        public ReplyKeyboardBuilder NewRow()
-        {
-            if (_currentRow.Count > 0)
-            {
-                _keyboard.Add(_currentRow);
-                _currentRow = new List<KeyboardButton>();
-            }
-            return this;
-        }
-
-        public ReplyKeyboardMarkup Build()
-        {
-            if (_currentRow.Count > 0)
-            {
-                _keyboard.Add(_currentRow);
-            }
-            return new ReplyKeyboardMarkup { keyboard = _keyboard };
-        }
-    }
-    public class LabeledPrice
-    {
-        public string label { get; set; }
-        public int amount { get; set; }
-    }
-    public class InlineKeyboardBuilder
-    {
-        private List<List<InlineKeyboardButton>> _keyboard;
-        private List<InlineKeyboardButton> _currentRow;
-
-        public InlineKeyboardBuilder()
-        {
-            _keyboard = new List<List<InlineKeyboardButton>>();
-            _currentRow = new List<InlineKeyboardButton>();
-        }
-
-        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, WebAppInfo webApp = null, string copyText = null)
-        {
-            _currentRow.Add(new InlineKeyboardButton
-            {
-                text = text,
-                callback_data = callbackData,
-                url = url,
-                web_app = webApp,
-                copy_text = copyText != null ? new CopyTextButton { text = copyText } : null
-            });
-            return this;
-        }
-
-        public InlineKeyboardBuilder NewRow()
-        {
-            if (_currentRow.Count > 0)
-            {
-                _keyboard.Add(_currentRow);
-                _currentRow = new List<InlineKeyboardButton>();
-            }
-            return this;
-        }
-
-        public InlineKeyboardMarkup Build()
-        {
-            if (_currentRow.Count > 0)
-            {
-                _keyboard.Add(_currentRow);
-            }
-            return new InlineKeyboardMarkup { inline_keyboard = _keyboard };
-        }
-    }
+    
     public static class Bot
     {
         private static readonly HttpClient _client = new HttpClient();
@@ -494,7 +534,7 @@ namespace Bale
                 {"provider_token", provider_token},
                 {"prices", JsonConvert.SerializeObject(prices)},
             };
-            if(photo_url != null)
+            if (photo_url != null)
             {
                 dict.Add("photo_url", photo_url);
             }
