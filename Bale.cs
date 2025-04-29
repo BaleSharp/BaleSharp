@@ -242,7 +242,7 @@ namespace Bale
             {
                 try
                 {
-                    var updates = await this.GetUpdates(_lastUpdateId);
+                    var updates = await this.GetUpdates(_lastUpdateId + 1);
 
                     foreach (var update in updates)
                     {
