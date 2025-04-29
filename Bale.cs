@@ -2,6 +2,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using System.ComponentModel;
 
 namespace Bale
 {
@@ -15,6 +16,10 @@ namespace Bale
         public int? file_size { get; set; }
     }
 
+    public class WebhookInfo
+    {
+        public string url { get; set; }
+    }
     public class Animation
     {
         public string file_id { get; set; }
@@ -270,7 +275,11 @@ namespace Bale
             return new ReplyKeyboardMarkup { keyboard = _keyboard };
         }
     }
-
+    public class LabeledPrice
+    {
+        public string label { get; set; }
+        public int amount { get; set; }
+    }
     public class InlineKeyboardBuilder
     {
         private List<List<InlineKeyboardButton>> _keyboard;
@@ -390,7 +399,64 @@ namespace Bale
             var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
             return m.Result;
         }
-        
+        public static async Task<WebhookInfo> GetWebhook(this Client client)
+        {
+            string res = await client.ExecuteAsync("getWebhookInfo");
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<WebhookInfo>>(res);
+            return tmp.Result;
+        }
+        public static async Task<WebhookInfo> SetWebhook(this Client client, string url)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"url", url}
+            };
+            await client.ExecuteAsync("setWebhook", dict);
+            return await client.GetWebhook();
+        }
+        public static async void DeleteWebhook(this Client client)
+        {
+            await client.ExecuteAsync("setWebhook");
+
+        }
+        public static async void sendInvoice(this Client client, long chat_id, string title, string description, string payload, string provider_token, LabeledPrice[] prices, string? photo_url = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chat_id},
+                {"title", title},
+                {"description", description},
+                {"payload", payload},
+                {"provider_token", provider_token},
+                {"prices", JsonConvert.SerializeObject(prices)},
+            };
+            if(photo_url != null)
+            {
+                dict.Add("photo_url", photo_url);
+            }
+            await client.ExecuteAsync("sendInvoice", dict);
+        }
+        public static async Task<Message> editTextMessage(this Client client, Message msg, string text)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", msg.chat.id},
+                {"message_id", msg.message_id},
+                {"text", text}
+            };
+            string res = await client.ExecuteAsync("editMessageText", dict);
+            var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            return m.Result;
+        }
+        public static async void deleteMessage(this Client client, Message msg)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", msg.chat.id},
+                {"message_id", msg.message_id}
+            };
+            await client.ExecuteAsync("deleteMessage", dict);
+        }
         public static async Task<Message> reply_to(this Client client, Message msg, string text, object? reply_markup = null)
         {
             Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.message_id);
