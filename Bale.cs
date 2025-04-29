@@ -408,9 +408,9 @@ namespace Bale
 
             HttpResponseMessage res = await _client.GetAsync(url);
             try { res.EnsureSuccessStatusCode(); }
-            catch
+            catch (Exception ex)
             {
-                throw new Exception("sending request failed.");
+                throw new Exception(ex.Message);
             }
             string content = await res.Content.ReadAsStringAsync();
             return content;
