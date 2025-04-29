@@ -6,7 +6,9 @@ using System.ComponentModel;
 
 namespace Bale
 {
-
+    public delegate Task MessageHandler(Message message);
+    public delegate Task CallbackQueryHandler(CallbackQuery callbackQuery);
+    public delegate Task CommandHandler(Message message, string command, string[] args);
     public class PhotoSize
     {
         public string file_id { get; set; }
@@ -208,11 +210,73 @@ namespace Bale
         protected readonly string _token;
         protected readonly string baseUrl;
 
+        public MessageHandler OnMessage { get; set; }
+        public CommandHandler OnCommand { get; set; }
+        public CallbackQueryHandler OnCallbackQuery { get; set; }
+
+        private bool _isReceiving;
+        private int _lastUpdateId;
         public Client(string token, string? _baseUrl = null)
         {
             if (!string.IsNullOrEmpty(_baseUrl)) baseUrl = _baseUrl;
             else baseUrl = "https://tapi.bale.ai/bot";
             _token = token;
+        }
+
+        public void StartReceiving()
+        {
+            if (_isReceiving) return;
+
+            _isReceiving = true;
+            Task.Run(ReceiveUpdates);
+        }
+
+        public void StopReceiving()
+        {
+            _isReceiving = false;
+        }
+
+        private async Task ReceiveUpdates()
+        {
+            while (_isReceiving)
+            {
+                try
+                {
+                    var updates = await this.GetUpdates(_lastUpdateId);
+
+                    foreach (var update in updates)
+                    {
+                        _lastUpdateId = update.update_id;
+
+                        if (update.message != null)
+                        {
+                            // Handle regular messages
+                            if (OnMessage != null)
+                            {
+                                await OnMessage(update.message);
+                            }
+
+                            // Handle commands
+                            if (update.message.text?.StartsWith("/") == true && OnCommand != null)
+                            {
+                                string[] parts = update.message.text.Split(' ');
+                                var command = parts[0][1..]; // Remove the '/'
+                                var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
+                                await OnCommand(update.message, command, args);
+                            }
+                        }
+                        else if (update.callback_query != null && OnCallbackQuery != null)
+                        {
+                            await OnCallbackQuery(update.callback_query);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error receiving updates: {ex.Message}");
+                    await Task.Delay(1000);
+                }
+            }
         }
 
         // Optionally expose public accessors if needed  
