@@ -155,6 +155,13 @@ namespace Bale
         public Message message { get; set; }
         public string inline_message_id { get; set; }
         public string data { get; set; }
+        
+        public async Task<Message> answer(string text)
+        {
+            Message tmp = await this.message.client.SendMessage(this.from.id, text);
+            return tmp;
+        }
+
     }
     public class Update
     {
@@ -162,6 +169,8 @@ namespace Bale
         public Message message { get; set; }
         public Message edited_message { get; set; }
         public CallbackQuery callback_query { get; set; }
+        [JsonIgnore]
+        public Client client { get; internal set; }
     }
     public class Updates
     {
@@ -179,6 +188,14 @@ namespace Bale
         public string? last_name { get; set; }
         public string? username { get; set; }
         public string? language_code { get; set; }
+        public void set_state(string state)
+        {
+            StateMachine.SetState(id, state);
+        }
+        public void del_state()
+        {
+            StateMachine.DeleteState(id);
+        }
     }
 
     public class LabeledPrice
@@ -188,7 +205,8 @@ namespace Bale
     }
     public class Message
     {
-        public int message_id { get; set; }
+        [JsonProperty("message_id")]
+        public int id { get; set; }
         public User? from { get; set; }  // اختیاری  
         public int date { get; set; }
         public Chat chat { get; set; }
@@ -210,6 +228,20 @@ namespace Bale
         public List<User>? new_chat_members { get; set; }  // اختیاری - آرایه  
         public User? left_chat_member { get; set; }  // اختیاری  
         public InlineKeyboardButton? reply_markup { get; set; }  // اختیاری  
+
+        [JsonIgnore]
+        public Client client { get; internal set; }
+
+        public async Task<Message> reply(string text)
+        {
+            Message tmp = await this.client.SendMessage(this.from.id, text);
+            return tmp;
+        }
+        public async Task<Message> edit(string text)
+        {
+            Message tmp = await this.client.editTextMessage(this, text);
+            return tmp;
+        }
     }
     public class ReplyKeyboardBuilder
     {
@@ -545,7 +577,7 @@ namespace Bale
             var dict = new Dictionary<string, object>
             {
                 {"chat_id", msg.chat.id},
-                {"message_id", msg.message_id},
+                {"message_id", msg.id},
                 {"text", text}
             };
             string res = await client.ExecuteAsync("editMessageText", dict);
@@ -557,13 +589,13 @@ namespace Bale
             var dict = new Dictionary<string, object>
             {
                 {"chat_id", msg.chat.id},
-                {"message_id", msg.message_id}
+                {"message_id", msg.id}
             };
             await client.ExecuteAsync("deleteMessage", dict);
         }
         public static async Task<Message> reply_to(this Client client, Message msg, string text, object? reply_markup = null)
         {
-            Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.message_id);
+            Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.id);
             return m;
         }
         public static async Task<Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
@@ -575,8 +607,25 @@ namespace Bale
             };
 
             string res = await client.ExecuteAsync("getUpdates", dict);
-            var u = JsonConvert.DeserializeObject<ApiResponse<Update[]>>(res);
-            return u.Result;
+            var response = JsonConvert.DeserializeObject<ApiResponse<Update[]>>(res);
+            if (response?.Result != null)
+            {
+                foreach (var update in response.Result)
+                {
+                    update.client = client;
+
+                    if (update.message != null)
+                        update.message.client = client;
+
+                    if (update.edited_message != null)
+                        update.edited_message.client = client;
+
+                    if (update.callback_query?.message != null)
+                        update.callback_query.message.client = client;
+                }
+            }
+
+            return response?.Result ?? Array.Empty<Update>();
         }
     }
 }
