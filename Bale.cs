@@ -4,259 +4,29 @@ using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Collections.Concurrent;
+using Bale.Objects;
+using Bale.Enums;
 
 namespace Bale
 {
-    public delegate Task MessageHandler(Message message);
-    public delegate Task CallbackQueryHandler(CallbackQuery callbackQuery);
-    public delegate Task CommandHandler(Message message, string command, string[] args);
-    public class PhotoSize
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public int width { get; set; }
-        public int height { get; set; }
-        public int? file_size { get; set; }
-    }
-
-    public class WebhookInfo
-    {
-        public string url { get; set; }
-    }
-    public class Animation
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public int width { get; set; }
-        public int height { get; set; }
-        public int duration { get; set; }
-        public PhotoSize thumbnail { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
-        public int? file_size { get; set; }
-    }
-
-    public class Audio
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public int duration { get; set; }
-        public string title { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
-        public int? file_size { get; set; }
-    }
-
-    public class Document
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public PhotoSize thumbnail { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
-        public int? file_size { get; set; }
-    }
-
-    public class Video
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public int width { get; set; }
-        public int height { get; set; }
-        public int duration { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
-        public int? file_size { get; set; }
-    }
-
-    public class Voice
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public int duration { get; set; }
-        public string mime_type { get; set; }
-        public int? file_size { get; set; }
-    }
-
-    public class Contact
-    {
-        public string phone_number { get; set; }
-        public string first_name { get; set; }
-        public string last_name { get; set; }
-        public int? user_id { get; set; }
-    }
-
-    public class Location
-    {
-        public float longitude { get; set; }
-        public float latitude { get; set; }
-    }
-
-    public class File
-    {
-        public string file_id { get; set; }
-        public string file_unique_id { get; set; }
-        public int? file_size { get; set; }
-        public string file_path { get; set; }
-    }
-
-    public class WebAppInfo
-    {
-        public string url { get; set; }
-    }
-
-    public class CopyTextButton
-    {
-        public string text { get; set; }
-    }
-
-    public class KeyboardButton
-    {
-        public string text { get; set; }
-        public bool? request_contact { get; set; }
-        public bool? request_location { get; set; }
-        public WebAppInfo web_app { get; set; }
-    }
-
-    public class ReplyKeyboardMarkup
-    {
-        public List<List<KeyboardButton>> keyboard { get; set; }
-    }
-
-    public class InlineKeyboardButton
-    {
-        public string text { get; set; }
-        public string url { get; set; }
-        public string callback_data { get; set; }
-        public WebAppInfo web_app { get; set; }
-        public CopyTextButton copy_text { get; set; }
-    }
-
-    public class InlineKeyboardMarkup
-    {
-        public List<List<InlineKeyboardButton>> inline_keyboard { get; set; }
-    }
-
-
-    public class Chat
-    {
-        public long id { get; set; }
-        public string type { get; set; }
-        public string title { get; set; }
-        public string username { get; set; }
-        public string first_name { get; set; }
-        public string last_name { get; set; }
-    }
-
-    public class CallbackQuery
-    {
-        public string id { get; set; }
-        public User from { get; set; }
-        public Message message { get; set; }
-        public string inline_message_id { get; set; }
-        public string data { get; set; }
-        
-        public async Task<Message> answer(string text)
-        {
-            Message tmp = await this.message.client.SendMessage(this.from.id, text);
-            return tmp;
-        }
-
-    }
-    public class Update
-    {
-        public int update_id { get; set; }
-        public Message message { get; set; }
-        public Message edited_message { get; set; }
-        public CallbackQuery callback_query { get; set; }
-        [JsonIgnore]
-        public Client client { get; internal set; }
-    }
-    public class Updates
-    {
-        public Update[] UpdateList { get; set; }
-    }
-    public class Messages
-    {
-        public int id { get; set; }
-    }
-    public class User
-    {
-        public int id { get; set; }
-        public bool is_bot { get; set; }
-        public string first_name { get; set; }
-        public string? last_name { get; set; }
-        public string? username { get; set; }
-        public string? language_code { get; set; }
-        public void set_state(string state)
-        {
-            StateMachine.SetState(id, state);
-        }
-        public void del_state()
-        {
-            StateMachine.DeleteState(id);
-        }
-    }
-
-    public class LabeledPrice
-    {
-        public string label { get; set; }
-        public int amount { get; set; }
-    }
-    public class Message
-    {
-        [JsonProperty("message_id")]
-        public int id { get; set; }
-        public User? from { get; set; }  // اختیاری  
-        public int date { get; set; }
-        public Chat chat { get; set; }
-        public User? forward_from { get; set; }  // اختیاری  
-        public Chat? forward_from_chat { get; set; }  // اختیاری  
-        public int? forward_from_message_id { get; set; }  // اختیاری  
-        public int? forward_date { get; set; }  // اختیاری  
-        public Message? reply_to_message { get; set; }  // اختیاری  
-        public int? edit_date { get; set; }  // اختیاری  
-        public string? text { get; set; }  // اختیاری UTF-8  
-        public Animation? animation { get; set; }  // اختیاری  
-        public Audio? audio { get; set; }  // اختیاری  
-        public Document? document { get; set; }  // اختیاری
-        public Video? video { get; set; }  // اختیاری  
-        public Voice? voice { get; set; }  // اختیاری  
-        public string? caption { get; set; }  // اختیاری  
-        public Contact? contact { get; set; }  // اختیاری  
-        public Location? location { get; set; }  // اختیاری  
-        public List<User>? new_chat_members { get; set; }  // اختیاری - آرایه  
-        public User? left_chat_member { get; set; }  // اختیاری  
-        public InlineKeyboardButton? reply_markup { get; set; }  // اختیاری  
-
-        [JsonIgnore]
-        public Client client { get; internal set; }
-
-        public async Task<Message> reply(string text)
-        {
-            Message tmp = await this.client.SendMessage(this.from.id, text);
-            return tmp;
-        }
-        public async Task<Message> edit(string text)
-        {
-            Message tmp = await this.client.editTextMessage(this, text);
-            return tmp;
-        }
-    }
+    public delegate Task MessageHandler(Objects.Message message);
+    public delegate Task CallbackQueryHandler(Objects.CallbackQuery callbackQuery);
+    public delegate Task CommandHandler(Bale.Objects.Message message, string command, string[] args);
+    
     public class ReplyKeyboardBuilder
     {
-        private List<List<KeyboardButton>> _keyboard;
-        private List<KeyboardButton> _currentRow;
+        private List<List<Objects.KeyboardButton>> _keyboard;
+        private List<Objects.KeyboardButton> _currentRow;
 
         public ReplyKeyboardBuilder()
         {
-            _keyboard = new List<List<KeyboardButton>>();
-            _currentRow = new List<KeyboardButton>();
+            _keyboard = new List<List<Objects.KeyboardButton>>();
+            _currentRow = new List<Objects.KeyboardButton>();
         }
 
-        public ReplyKeyboardBuilder AddButton(string text, bool requestContact = false, bool requestLocation = false, WebAppInfo webApp = null)
+        public ReplyKeyboardBuilder AddButton(string text, bool requestContact = false, bool requestLocation = false, Objects.WebAppInfo webApp = null)
         {
-            _currentRow.Add(new KeyboardButton
+            _currentRow.Add(new Objects.KeyboardButton
             {
                 text = text,
                 request_contact = requestContact ? true : null,
@@ -271,41 +41,41 @@ namespace Bale
             if (_currentRow.Count > 0)
             {
                 _keyboard.Add(_currentRow);
-                _currentRow = new List<KeyboardButton>();
+                _currentRow = new List<Objects.KeyboardButton>();
             }
             return this;
         }
 
-        public ReplyKeyboardMarkup Build()
+        public Objects.ReplyKeyboardMarkup Build()
         {
             if (_currentRow.Count > 0)
             {
                 _keyboard.Add(_currentRow);
             }
-            return new ReplyKeyboardMarkup { keyboard = _keyboard };
+            return new Objects.ReplyKeyboardMarkup { keyboard = _keyboard };
         }
     }
     
     public class InlineKeyboardBuilder
     {
-        private List<List<InlineKeyboardButton>> _keyboard;
-        private List<InlineKeyboardButton> _currentRow;
+        private List<List<Objects.InlineKeyboardButton>> _keyboard;
+        private List<Objects.InlineKeyboardButton> _currentRow;
 
         public InlineKeyboardBuilder()
         {
-            _keyboard = new List<List<InlineKeyboardButton>>();
-            _currentRow = new List<InlineKeyboardButton>();
+            _keyboard = new List<List<Objects.InlineKeyboardButton>>();
+            _currentRow = new List<Objects.InlineKeyboardButton>();
         }
 
-        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, WebAppInfo webApp = null, string copyText = null)
+        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, Objects.WebAppInfo webApp = null, string copyText = null)
         {
-            _currentRow.Add(new InlineKeyboardButton
+            _currentRow.Add(new Objects.InlineKeyboardButton
             {
                 text = text,
                 callback_data = callbackData,
                 url = url,
                 web_app = webApp,
-                copy_text = copyText != null ? new CopyTextButton { text = copyText } : null
+                copy_text = copyText != null ? new Objects.CopyTextButton { text = copyText } : null
             });
             return this;
         }
@@ -315,18 +85,18 @@ namespace Bale
             if (_currentRow.Count > 0)
             {
                 _keyboard.Add(_currentRow);
-                _currentRow = new List<InlineKeyboardButton>();
+                _currentRow = new List<Objects.InlineKeyboardButton>();
             }
             return this;
         }
 
-        public InlineKeyboardMarkup Build()
+        public Objects.InlineKeyboardMarkup Build()
         {
             if (_currentRow.Count > 0)
             {
                 _keyboard.Add(_currentRow);
             }
-            return new InlineKeyboardMarkup { inline_keyboard = _keyboard };
+            return new Objects.InlineKeyboardMarkup { inline_keyboard = _keyboard };
         }
     }
     public static class StateMachine
@@ -488,24 +258,24 @@ namespace Bale
             return content;
         }
 
-        public static async Task<User> getMe(this Client client)
+        public static async Task<Objects.User> getMe(this Client client)
         {
             string res = await client.ExecuteAsync("getme");
-            var tmp = JsonConvert.DeserializeObject<ApiResponse<User>>(res);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Objects.User>>(res);
             return tmp.Result;
         }
-        public static async Task<Chat> getChat(this Client client, long ChatID)
+        public static async Task<Objects.Chat> getChat(this Client client, long ChatID)
         {
             var dict = new Dictionary<string, object>
             {
                 {"chat_id", ChatID}
             };
             string res = await client.ExecuteAsync("getChat", dict);
-            var tmp = JsonConvert.DeserializeObject<ApiResponse<Chat>>(res);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Objects.Chat>>(res);
             return tmp.Result;
         }
 
-        public static async Task<Message> SendMessage(this Client client, long ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
+        public static async Task<Objects.Message> SendMessage(this Client client, long ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
         {
             var dict = new Dictionary<string, object>
             {
@@ -520,8 +290,8 @@ namespace Bale
             {
                 switch (reply_markup)
                 {
-                    case ReplyKeyboardMarkup reply:
-                    case InlineKeyboardMarkup inline:
+                    case Objects.ReplyKeyboardMarkup reply:
+                    case Objects.InlineKeyboardMarkup inline:
                         dict.Add("reply_markup", JsonConvert.SerializeObject(reply_markup));
                         break;
                     default:
@@ -532,16 +302,16 @@ namespace Bale
                 }
             }
             string res = await client.ExecuteAsync("sendMessage", dict);
-            var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            var m = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
             return m.Result;
         }
-        public static async Task<WebhookInfo> GetWebhook(this Client client)
+        public static async Task<Objects.WebhookInfo> GetWebhook(this Client client)
         {
             string res = await client.ExecuteAsync("getWebhookInfo");
-            var tmp = JsonConvert.DeserializeObject<ApiResponse<WebhookInfo>>(res);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Objects.WebhookInfo>>(res);
             return tmp.Result;
         }
-        public static async Task<WebhookInfo> SetWebhook(this Client client, string url)
+        public static async Task<Objects.WebhookInfo> SetWebhook(this Client client, string url)
         {
             var dict = new Dictionary<string, object>
             {
@@ -555,7 +325,16 @@ namespace Bale
             await client.ExecuteAsync("setWebhook");
 
         }
-        public static async void sendInvoice(this Client client, long chat_id, string title, string description, string payload, string provider_token, LabeledPrice[] prices, string? photo_url = null)
+        public static async void sendChatAction(this Client client, long chatID, Enums.ChatAction mode)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID},
+                {"action", mode.ActionEncode()}
+            };
+            await client.ExecuteAsync("sendChatAction", dict);
+        }
+        public static async void sendInvoice(this Client client, long chat_id, string title, string description, string payload, string provider_token, Objects.LabeledPrice[] prices, string? photo_url = null)
         {
             var dict = new Dictionary<string, object>
             {
@@ -572,7 +351,7 @@ namespace Bale
             }
             await client.ExecuteAsync("sendInvoice", dict);
         }
-        public static async Task<Message> editTextMessage(this Client client, Message msg, string text)
+        public static async Task<Objects.Message> editTextMessage(this Client client, Objects.Message msg, string text)
         {
             var dict = new Dictionary<string, object>
             {
@@ -581,10 +360,10 @@ namespace Bale
                 {"text", text}
             };
             string res = await client.ExecuteAsync("editMessageText", dict);
-            var m = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            var m = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
             return m.Result;
         }
-        public static async void deleteMessage(this Client client, Message msg)
+        public static async void deleteMessage(this Client client, Objects.Message msg)
         {
             var dict = new Dictionary<string, object>
             {
@@ -593,12 +372,22 @@ namespace Bale
             };
             await client.ExecuteAsync("deleteMessage", dict);
         }
-        public static async Task<Message> reply_to(this Client client, Message msg, string text, object? reply_markup = null)
+        public static async Task<bool> leaveChat(this Client client, long chatID)
         {
-            Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.id);
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID}
+            };
+            string res = await client.ExecuteAsync("leaveChat", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
+            return tmp.Result;
+        }
+        public static async Task<Objects.Message> reply_to(this Client client, Objects.Message msg, string text, object? reply_markup = null)
+        {
+            Objects.Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.id);
             return m;
         }
-        public static async Task<Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
+        public static async Task<Objects.Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
         {
             var dict = new Dictionary<string, object>
             {
@@ -607,7 +396,7 @@ namespace Bale
             };
 
             string res = await client.ExecuteAsync("getUpdates", dict);
-            var response = JsonConvert.DeserializeObject<ApiResponse<Update[]>>(res);
+            var response = JsonConvert.DeserializeObject<ApiResponse<Objects.Update[]>>(res);
             if (response?.Result != null)
             {
                 foreach (var update in response.Result)
@@ -625,7 +414,7 @@ namespace Bale
                 }
             }
 
-            return response?.Result ?? Array.Empty<Update>();
+            return response?.Result ?? Array.Empty<Objects.Update>();
         }
     }
 }
