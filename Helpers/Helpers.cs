@@ -8,6 +8,92 @@ using System.Threading.Tasks;
 
 namespace Bale.Helpers
 {
+    public class ReplyKeyboardBuilder
+    {
+        private List<List<Objects.KeyboardButton>> _keyboard;
+        private List<Objects.KeyboardButton> _currentRow;
+
+        public ReplyKeyboardBuilder()
+        {
+            _keyboard = new List<List<Objects.KeyboardButton>>();
+            _currentRow = new List<Objects.KeyboardButton>();
+        }
+
+        public ReplyKeyboardBuilder AddButton(string text, bool requestContact = false, bool requestLocation = false, Objects.WebAppInfo webApp = null)
+        {
+            _currentRow.Add(new Objects.KeyboardButton
+            {
+                text = text,
+                request_contact = requestContact ? true : null,
+                request_location = requestLocation ? true : null,
+                web_app = webApp
+            });
+            return this;
+        }
+
+        public ReplyKeyboardBuilder NewRow()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+                _currentRow = new List<Objects.KeyboardButton>();
+            }
+            return this;
+        }
+
+        public Objects.ReplyKeyboardMarkup Build()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+            }
+            return new Objects.ReplyKeyboardMarkup { keyboard = _keyboard };
+        }
+    }
+
+    public class InlineKeyboardBuilder
+    {
+        private List<List<Objects.InlineKeyboardButton>> _keyboard;
+        private List<Objects.InlineKeyboardButton> _currentRow;
+
+        public InlineKeyboardBuilder()
+        {
+            _keyboard = new List<List<Objects.InlineKeyboardButton>>();
+            _currentRow = new List<Objects.InlineKeyboardButton>();
+        }
+
+        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, Objects.WebAppInfo webApp = null, string copyText = null)
+        {
+            _currentRow.Add(new Objects.InlineKeyboardButton
+            {
+                text = text,
+                callback_data = callbackData,
+                url = url,
+                web_app = webApp,
+                copy_text = copyText != null ? new Objects.CopyTextButton { text = copyText } : null
+            });
+            return this;
+        }
+
+        public InlineKeyboardBuilder NewRow()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+                _currentRow = new List<Objects.InlineKeyboardButton>();
+            }
+            return this;
+        }
+
+        public Objects.InlineKeyboardMarkup Build()
+        {
+            if (_currentRow.Count > 0)
+            {
+                _keyboard.Add(_currentRow);
+            }
+            return new Objects.InlineKeyboardMarkup { inline_keyboard = _keyboard };
+        }
+    }
     public class ApiSender
     {
         public async Task<string> SendUrl(string url, Dictionary<string, object>? parameters = null)
