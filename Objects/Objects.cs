@@ -1,13 +1,53 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Text;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Bale.Objects
 {
-
+    public class PreCheckoutQuery
+    {
+        public string id { get; set; }
+        public User from { get; set; }
+        public string currency { get; set; }
+        public int total_amount { get; set; }
+        public string invoice_payload { get; set; }
+        [JsonIgnore]
+        public Client client { get; internal set; }
+        public async void answer(bool ok, string errorMsg = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"pre_checkout_query_id", this.id},
+                {"ok", ok}
+            };
+            if (!ok)
+            {
+                if (!string.IsNullOrEmpty(errorMsg))
+                    dict.Add("error_message", errorMsg);
+                else
+                {
+                    throw new ArgumentException("When a preCheckoutQuery is not ok, you have to fill the error parameter", nameof(errorMsg));
+                }
+            }
+            await client.ExecuteAsync("answerPreCheckoutQuery", dict);
+        }
+    }
+    public class SuccessfulPayment
+    {
+        public string currency { get; set; }
+        public int total_amount { get; set; }
+        public string invoice_payload { get; set; }
+        public string telegram_payment_charge_id { get; set; }
+        [JsonProperty("provider_payment_charge_id")]
+        public string trackingNumber { get; set; }
+    }
     public class PhotoSize
     {
         public string file_id { get; set; }
@@ -161,12 +201,49 @@ namespace Bale.Objects
         }
 
     }
+
+    public static class StateMachine
+    {
+        private static readonly ConcurrentDictionary<int, string> _userStates = new ConcurrentDictionary<int, string>();
+
+        /// <summary>
+        /// Gets the current state for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>Current state or null if no state exists</returns>
+        public static string GetState(int userId)
+        {
+            return _userStates.TryGetValue(userId, out var state) ? state : null;
+        }
+
+        /// <summary>
+        /// Sets or updates the state for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <param name="state">New state value</param>
+        public static void SetState(int userId, string state)
+        {
+            _userStates.AddOrUpdate(userId, state, (_, __) => state);
+        }
+
+        /// <summary>
+        /// Deletes the state for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>True if state was deleted, false if user had no state</returns>
+        public static bool DeleteState(int userId)
+        {
+            return _userStates.TryRemove(userId, out _);
+        }
+    }
+
     public class Update
     {
         public int update_id { get; set; }
         public Message message { get; set; }
         public Message edited_message { get; set; }
         public CallbackQuery callback_query { get; set; }
+        public PreCheckoutQuery pre_checkout_query { get; set; }
         [JsonIgnore]
         public Client client { get; internal set; }
     }
@@ -194,7 +271,7 @@ namespace Bale.Objects
         {
             StateMachine.DeleteState(id);
         }
-        
+
     }
 
     public class LabeledPrice
@@ -226,6 +303,7 @@ namespace Bale.Objects
         public Location? location { get; set; }  // اختیاری  
         public List<User>? new_chat_members { get; set; }  // اختیاری - آرایه  
         public User? left_chat_member { get; set; }  // اختیاری  
+        public SuccessfulPayment? successful_payment { get; set; }
         public InlineKeyboardButton? reply_markup { get; set; }  // اختیاری  
 
         [JsonIgnore]
@@ -241,13 +319,28 @@ namespace Bale.Objects
             Message tmp = await this.client.editTextMessage(this, text);
             return tmp;
         }
+        public async Task<bool> delete()
+        {
+            bool res = await this.client.DeleteMessage(this);
+            return res;
+        }
+        public async Task<int> copy(long ChatID)
+        {
+            int res = await client.CopyMessage(this, ChatID);
+            return res;
+        }
+        public async Task<Message> forward(long ChatID)
+        {
+            Message res = await client.ForwardMessage(this, ChatID);
+            return res;
+        }
         public async void FullAdmin(long userID)
         {
             try
             {
                 var dict = new Dictionary<string, object>
                 {
-                    {"chat_id", this.id},
+                    {"chat_id", this.chat.id},
                     {"user_id", userID},
                     {"can_change_info", true},
                     {"can_post_messages", true},

@@ -11,8 +11,10 @@ namespace Bale
 {
     public delegate Task MessageHandler(Objects.Message message);
     public delegate Task CallbackQueryHandler(Objects.CallbackQuery callbackQuery);
-    public delegate Task CommandHandler(Bale.Objects.Message message, string command, string[] args);
-    
+    public delegate Task CommandHandler(Objects.Message message, string command, string[] args);
+    public delegate Task PaymentHandler(Objects.Message message, Objects.SuccessfulPayment payment);
+    public delegate Task PreCheckoutQueryHandler(Objects.PreCheckoutQuery precheckoutquery);
+
     public class ReplyKeyboardBuilder
     {
         private List<List<Objects.KeyboardButton>> _keyboard;
@@ -55,7 +57,7 @@ namespace Bale
             return new Objects.ReplyKeyboardMarkup { keyboard = _keyboard };
         }
     }
-    
+
     public class InlineKeyboardBuilder
     {
         private List<List<Objects.InlineKeyboardButton>> _keyboard;
@@ -99,42 +101,9 @@ namespace Bale
             return new Objects.InlineKeyboardMarkup { inline_keyboard = _keyboard };
         }
     }
-    public static class StateMachine
-    {
-        private static readonly ConcurrentDictionary<int, string> _userStates = new ConcurrentDictionary<int, string>();
 
-        /// <summary>
-        /// Gets the current state for a user
-        /// </summary>
-        /// <param name="userId">User ID</param>
-        /// <returns>Current state or null if no state exists</returns>
-        public static string GetState(int userId)
-        {
-            return _userStates.TryGetValue(userId, out var state) ? state : null;
-        }
 
-        /// <summary>
-        /// Sets or updates the state for a user
-        /// </summary>
-        /// <param name="userId">User ID</param>
-        /// <param name="state">New state value</param>
-        public static void SetState(int userId, string state)
-        {
-            _userStates.AddOrUpdate(userId, state, (_, __) => state);
-        }
 
-        /// <summary>
-        /// Deletes the state for a user
-        /// </summary>
-        /// <param name="userId">User ID</param>
-        /// <returns>True if state was deleted, false if user had no state</returns>
-        public static bool DeleteState(int userId)
-        {
-            return _userStates.TryRemove(userId, out _);
-        }
-    }
-
-    
     public class Client
     {
         protected readonly string _token;
@@ -143,6 +112,8 @@ namespace Bale
         public MessageHandler OnMessage { get; set; }
         public CommandHandler OnCommand { get; set; }
         public CallbackQueryHandler OnCallbackQuery { get; set; }
+        public PaymentHandler OnSuccessfulPayment { get; set; }
+        public PreCheckoutQueryHandler OnPreCheckoutQuery { get; set; }
 
         private bool _isReceiving;
         private int _lastUpdateId;
@@ -153,17 +124,22 @@ namespace Bale
             _token = token;
         }
 
-        public void StartReceiving()
+        public async void StartReceiving()
         {
             if (_isReceiving) return;
 
             _isReceiving = true;
-            Task.Run(ReceiveUpdates);
+            await Task.Run(ReceiveUpdates);
+            var me = await this.getMe();
+            Console.WriteLine($"--({me.username}) Started getting updates...");
+            Console.WriteLine("Powered by BaleSharp\nDocs at : @BaleSharp");
         }
 
-        public void StopReceiving()
+        public async void StopReceiving()
         {
             _isReceiving = false;
+            var me = await this.getMe();
+            Console.WriteLine($"--({me.username}) Stopped getting updates--");
         }
 
         private async Task ReceiveUpdates()
@@ -177,13 +153,21 @@ namespace Bale
                     foreach (var update in updates)
                     {
                         _lastUpdateId = update.update_id;
-
-                        if (update.message != null)
+                        if (update.pre_checkout_query != null)
                         {
+                            await OnPreCheckoutQuery(update.pre_checkout_query);
+                        }
+                        else if (update.message != null)
+                        {
+                            if (update.message.successful_payment != null)
+                            {
+                                await OnSuccessfulPayment(update.message, update.message.successful_payment);
+                            }
+
                             // Handle regular messages
                             if (OnMessage != null)
                             {
-                                if (update.message.text?.StartsWith("/") != true)
+                                if (update.message.text?.StartsWith("/") != true && update.message.successful_payment != null)
                                     await OnMessage(update.message);
                             }
 
@@ -228,7 +212,7 @@ namespace Bale
         [JsonProperty("error_code")]
         public int? ErrorCode { get; set; }
     }
-    
+
     public static class Bot
     {
         private static readonly HttpClient _client = new HttpClient();
@@ -244,18 +228,23 @@ namespace Bale
                 {
                     url += $"{param.Key}={param.Value}&";
                 }
-                // Remove the trailing '&' if parameters were added
+
                 url = url.TrimEnd('&');
             }
 
+
             HttpResponseMessage res = await _client.GetAsync(url);
-            try { res.EnsureSuccessStatusCode(); }
-            catch (Exception ex)
+            if (res.IsSuccessStatusCode)
             {
-                throw new Exception(ex.Message);
+                string content = await res.Content.ReadAsStringAsync();
+                return content;
             }
-            string content = await res.Content.ReadAsStringAsync();
-            return content;
+            else
+            {
+                string content = "error";
+                return content;
+            }
+
         }
 
         public static async Task<Objects.User> getMe(this Client client)
@@ -322,9 +311,11 @@ namespace Bale
         }
         public static async void DeleteWebhook(this Client client)
         {
-            await client.ExecuteAsync("setWebhook");
-
+            string res = await client.ExecuteAsync("setWebhook");
+            
         }
+
+
         public static async void sendChatAction(this Client client, long chatID, Enums.ChatAction mode)
         {
             var dict = new Dictionary<string, object>
@@ -363,14 +354,49 @@ namespace Bale
             var m = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
             return m.Result;
         }
-        public static async void deleteMessage(this Client client, Objects.Message msg)
+
+        public static async Task<int> CopyMessage(this Client client, Message msg, long ChatID)
+        {
+            ///<summary>copies every type of message into another chat</summary>
+            /// <param name="msg">the message that you want to copy</param>
+            /// <param name="ChatID">The ChatID you want to copy the message in it</param>
+            /// <returns>id of copied message</returns>
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"from_chat_id", msg.chat.id},
+                {"message_id", msg.id}
+            };
+            string res = await client.ExecuteAsync("copyMessage", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<int>>(res);
+            return tmp.Result;
+        }
+        public static async Task<Message> ForwardMessage(this Client client, Message msg, long ChatID)
+        {
+            ///<summary>forwards message into another chat</summary>
+            /// <param name="msg">the message that you want to forward</param>
+            /// <param name="ChatID">The ChatID you want to forward the message in it</param>
+            /// <returns>forwarded message</returns>
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"from_chat_id", msg.chat.id},
+                {"message_id", msg.id}
+            };
+            string res = await client.ExecuteAsync("forwardMessage", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            return tmp.Result;
+        }
+        public static async Task<bool> DeleteMessage(this Client client, Objects.Message msg)
         {
             var dict = new Dictionary<string, object>
             {
                 {"chat_id", msg.chat.id},
                 {"message_id", msg.id}
             };
-            await client.ExecuteAsync("deleteMessage", dict);
+            string res = await client.ExecuteAsync("deleteMessage", dict);
+            var m = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
+            return m.Result;
         }
         public static async Task<bool> leaveChat(this Client client, long chatID)
         {
