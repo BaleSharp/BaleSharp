@@ -107,6 +107,24 @@ namespace Bale.Objects
         public int? file_size { get; set; }
     }
 
+    public class Sticker
+    {
+        public string file_id { get; set; }
+        public string file_unique_id { get; set; }
+        public string type { get; set; }
+        public int width { get; set; }
+        public int height { get; set; }
+        public int? file_size { get; set; }
+    }
+
+    public class StickerSet
+    {
+        public string name { get; set; }
+        public string title { get; set; }
+        public Sticker[] stickers { get; set; }
+        public PhotoSize? thumbnail { get; set; }
+    }
+
     public class Voice
     {
         public string file_id { get; set; }
@@ -296,6 +314,8 @@ namespace Bale.Objects
         public Animation? animation { get; set; }  // اختیاری  
         public Audio? audio { get; set; }  // اختیاری  
         public Document? document { get; set; }  // اختیاری
+        public PhotoSize? photo { get; set; }
+        public Sticker? sticker { get; set; }
         public Video? video { get; set; }  // اختیاری  
         public Voice? voice { get; set; }  // اختیاری  
         public string? caption { get; set; }  // اختیاری  
@@ -314,6 +334,12 @@ namespace Bale.Objects
             Message tmp = await this.client.SendMessage(this.from.id, text);
             return tmp;
         }
+
+        public async void pin()
+        {
+            client.PinMessage(this, this.chat.id);
+        }
+
         public async Task<Message> edit(string text)
         {
             Message tmp = await this.client.editTextMessage(this, text);

@@ -15,7 +15,7 @@ namespace Bale
     public delegate Task PaymentHandler(Objects.Message message, Objects.SuccessfulPayment payment);
     public delegate Task PreCheckoutQueryHandler(Objects.PreCheckoutQuery precheckoutquery);
 
-    
+
 
 
 
@@ -179,6 +179,46 @@ namespace Bale
             return tmp.Result;
         }
 
+        public static async void PinMessage(this Client client, Message msg, long ChatID)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"message_id", msg.id}
+            };
+            await client.ExecuteAsync("pinChatMessage", dict);
+        }
+
+        public static async Task<Objects.File> GetFile(this Client client, string file_id)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"file_id", file_id}
+            };
+            string res = await client.ExecuteAsync("getFile", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Objects.File>>(res);
+            return tmp.Result;
+        }
+
+        public static async Task<string> FileLink(this Client client, string file_id)
+        {
+            Objects.File file = await client.GetFile(file_id);
+            string output = $"https://tapi.bale.ai/file/bot{client.Token}/{file.file_path}";
+            return output;
+        }
+
+        public static async Task<bool> banChatMember(this Client client, long UserID, long ChatID)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", UserID},
+                {"chat_id", ChatID}
+            };
+            string res = await client.ExecuteAsync("banChatMember", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
+            return tmp.Result;
+        }
+
         public static async Task<Objects.Message> SendMessage(this Client client, long ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
         {
             var dict = new Dictionary<string, object>
@@ -227,7 +267,7 @@ namespace Bale
         public static async void DeleteWebhook(this Client client)
         {
             string res = await client.ExecuteAsync("setWebhook");
-            
+
         }
 
 
