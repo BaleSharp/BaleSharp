@@ -24,6 +24,9 @@ namespace Bale
         protected readonly string _token;
         protected readonly string baseUrl;
 
+        public User self;
+
+
         public MessageHandler OnMessage { get; set; }
         public CommandHandler OnCommand { get; set; }
         public CallbackQueryHandler OnCallbackQuery { get; set; }
@@ -37,6 +40,12 @@ namespace Bale
             if (!string.IsNullOrEmpty(_baseUrl)) baseUrl = _baseUrl;
             else baseUrl = "https://tapi.bale.ai/bot";
             _token = token;
+            clientProfile();
+        }
+
+        public async void clientProfile()
+        {
+            self = await this.getMe();
         }
 
         public async void StartReceiving()
@@ -68,25 +77,17 @@ namespace Bale
                     foreach (var update in updates)
                     {
                         _lastUpdateId = update.update_id;
-                        if (update.pre_checkout_query != null)
-                        {
-                            await OnPreCheckoutQuery(update.pre_checkout_query);
-                        }
-                        else if (update.message != null)
-                        {
-                            if (update.message.successful_payment != null)
-                            {
-                                await OnSuccessfulPayment(update.message, update.message.successful_payment);
-                            }
 
-                            // Handle regular messages
-                            if (OnMessage != null)
+                        if (update.message != null)
+                        {
+                            // Handle regular messages (non-command and not payment)
+                            if (update.message.text != null && !update.message.text.StartsWith("/"))
                             {
-                                if (update.message.text?.StartsWith("/") != true && update.message.successful_payment != null)
+                                if (OnMessage != null)
                                     await OnMessage(update.message);
                             }
 
-                            // Handle commands
+                            // Handle commands (messages starting with "/")
                             if (update.message.text?.StartsWith("/") == true && OnCommand != null)
                             {
                                 string[] parts = update.message.text.Split(' ');
@@ -94,10 +95,20 @@ namespace Bale
                                 var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
                                 await OnCommand(update.message, command, args);
                             }
+
+                            // Handle successful payments (if needed)
+                            if (update.message.successful_payment != null && OnSuccessfulPayment != null)
+                            {
+                                await OnSuccessfulPayment(update.message, update.message.successful_payment);
+                            }
                         }
                         else if (update.callback_query != null && OnCallbackQuery != null)
                         {
                             await OnCallbackQuery(update.callback_query);
+                        }
+                        else if (update.pre_checkout_query != null && OnPreCheckoutQuery != null)
+                        {
+                            await OnPreCheckoutQuery(update.pre_checkout_query);
                         }
                     }
                 }
@@ -246,8 +257,15 @@ namespace Bale
                 }
             }
             string res = await client.ExecuteAsync("sendMessage", dict);
-            var m = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
-            return m.Result;
+            try
+            {
+                var m = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
+                return m.Result;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
         public static async Task<Objects.WebhookInfo> GetWebhook(this Client client)
         {
@@ -368,11 +386,12 @@ namespace Bale
             Objects.Message m = await client.SendMessage(msg.chat.id, text, reply_markup, msg.id);
             return m;
         }
-        public static async Task<Objects.Update[]> GetUpdates(this Client client, int offset, int? timout = 30)
+        public static async Task<Objects.Update[]> GetUpdates(this Client client, int offset, int? limit = 100, int? timout = 30)
         {
             var dict = new Dictionary<string, object>
             {
                 {"offset", offset},
+                {"limit", limit},
                 {"timout", timout}
             };
 
@@ -385,9 +404,7 @@ namespace Bale
                     update.client = client;
 
                     if (update.pre_checkout_query != null)
-                    {
                         update.pre_checkout_query.client = client;
-                    }
 
                     if (update.message != null)
                         update.message.client = client;

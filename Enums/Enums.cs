@@ -18,8 +18,24 @@ namespace Bale.Enums
         sendDocument,
         sendLocation
     }
+
+    public enum StickerType
+    {
+        Regular,
+        Mask
+    }
+
     public static class Extensions
     {
+        public static StickerType Serialize(string text)
+        {
+            switch (text)
+            {
+                case "regular": return StickerType.Regular; break;
+                case "mask": return StickerType.Mask; break;
+                default: return StickerType.Regular; break;
+            }
+        }
         public static string ActionEncode(this ChatAction action)
         {
             switch (action)

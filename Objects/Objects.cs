@@ -8,6 +8,7 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Reflection.Metadata.Ecma335;
+using Bale.Enums;
 
 namespace Bale.Objects
 {
@@ -111,7 +112,7 @@ namespace Bale.Objects
     {
         public string file_id { get; set; }
         public string file_unique_id { get; set; }
-        public string type { get; set; }
+        public StickerType type { get; set; }
         public int width { get; set; }
         public int height { get; set; }
         public int? file_size { get; set; }
@@ -258,10 +259,10 @@ namespace Bale.Objects
     public class Update
     {
         public int update_id { get; set; }
-        public Message message { get; set; }
-        public Message edited_message { get; set; }
-        public CallbackQuery callback_query { get; set; }
-        public PreCheckoutQuery pre_checkout_query { get; set; }
+        public Message? message { get; set; }
+        public Message? edited_message { get; set; }
+        public CallbackQuery? callback_query { get; set; }
+        public PreCheckoutQuery? pre_checkout_query { get; set; }
         [JsonIgnore]
         public Client client { get; internal set; }
     }
