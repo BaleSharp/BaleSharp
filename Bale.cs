@@ -14,7 +14,7 @@ namespace Bale
     public delegate Task CommandHandler(Objects.Message message, string command, string[] args);
     public delegate Task PaymentHandler(Objects.Message message, Objects.SuccessfulPayment payment);
     public delegate Task PreCheckoutQueryHandler(Objects.PreCheckoutQuery precheckoutquery);
-
+    public delegate Task EditedMessageHandler(Objects.Message message);
 
 
 
@@ -23,7 +23,7 @@ namespace Bale
     {
         protected readonly string _token;
         protected readonly string baseUrl;
-
+        protected readonly bool debug;
         public User self;
 
 
@@ -32,13 +32,15 @@ namespace Bale
         public CallbackQueryHandler OnCallbackQuery { get; set; }
         public PaymentHandler OnSuccessfulPayment { get; set; }
         public PreCheckoutQueryHandler OnPreCheckoutQuery { get; set; }
+        public EditedMessageHandler OnEditedMessage { get; set; }
 
         private bool _isReceiving;
         private int _lastUpdateId;
-        public Client(string token, string? _baseUrl = null)
+        public Client(string token, string? _baseUrl = null, bool debug = false)
         {
             if (!string.IsNullOrEmpty(_baseUrl)) baseUrl = _baseUrl;
             else baseUrl = "https://tapi.bale.ai/bot";
+            this.debug = debug;
             _token = token;
             clientProfile();
         }
@@ -84,7 +86,10 @@ namespace Bale
                             if (update.message.text != null && !update.message.text.StartsWith("/"))
                             {
                                 if (OnMessage != null)
+                                {
+                                    if (debug) Console.WriteLine($"Message recieved : {update.message}");
                                     await OnMessage(update.message);
+                                }
                             }
 
                             // Handle commands (messages starting with "/")
@@ -93,7 +98,13 @@ namespace Bale
                                 string[] parts = update.message.text.Split(' ');
                                 var command = parts[0][1..]; // Remove the '/'
                                 var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
+                                if (debug) Console.WriteLine($"Command recieved : {update.message}");
                                 await OnCommand(update.message, command, args);
+                            }
+
+                            if (update.edited_message != null && OnEditedMessage != null)
+                            {
+                                await OnEditedMessage(update.message);
                             }
 
                             // Handle successful payments (if needed)
@@ -167,7 +178,7 @@ namespace Bale
             }
             else
             {
-                string content = "error";
+                string content = $"error:{res.StatusCode}";
                 return content;
             }
 
