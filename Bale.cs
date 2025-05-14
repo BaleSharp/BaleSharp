@@ -1,11 +1,8 @@
-﻿using System.Reflection.Metadata;
-using System;
-using System.Runtime.CompilerServices;
-using Newtonsoft.Json;
-using System.ComponentModel;
-using System.Collections.Concurrent;
+﻿using Bale;
 using Bale.Objects;
+using Bale.Helpers;
 using Bale.Enums;
+using Newtonsoft.Json;
 
 namespace Bale
 {
@@ -102,16 +99,17 @@ namespace Bale
                                 await OnCommand(update.message, command, args);
                             }
 
-                            if (update.edited_message != null && OnEditedMessage != null)
-                            {
-                                await OnEditedMessage(update.message);
-                            }
+                            
 
                             // Handle successful payments (if needed)
                             if (update.message.successful_payment != null && OnSuccessfulPayment != null)
                             {
                                 await OnSuccessfulPayment(update.message, update.message.successful_payment);
                             }
+                        }
+                        else if (update.edited_message != null && OnEditedMessage != null)
+                        {
+                            await OnEditedMessage(update.edited_message);
                         }
                         else if (update.callback_query != null && OnCallbackQuery != null)
                         {

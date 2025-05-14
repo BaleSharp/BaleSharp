@@ -19,6 +19,14 @@ namespace Bale.Enums
         sendLocation
     }
 
+    public enum ChatType
+    {
+        Private,
+        Group,
+        Channel
+    }
+
+
     public enum StickerType
     {
         Regular,

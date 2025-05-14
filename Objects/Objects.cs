@@ -198,7 +198,7 @@ namespace Bale.Objects
     public class Chat
     {
         public long id { get; set; }
-        public string type { get; set; }
+        public ChatType type { get; set; }
         public string title { get; set; }
         public string username { get; set; }
         public string first_name { get; set; }
@@ -213,10 +213,32 @@ namespace Bale.Objects
         public string inline_message_id { get; set; }
         public string data { get; set; }
 
-        public async Task<Message> answer(string text)
+        public async Task<Message> answer(string text, InlineKeyboardMarkup markup)
         {
-            Message tmp = await this.message.client.SendMessage(this.from.id, text);
-            return tmp;
+            if (markup == null)
+            {
+                Message tmp = await this.message.client.SendMessage(this.from.id, text);
+                return tmp;
+            }
+            else
+            {
+                Message tmp = await this.message.client.SendMessage(this.from.id, text, markup);
+                return tmp;
+            }
+        }
+
+        public async Task<Message> answer(string text, ReplyKeyboardMarkup markup)
+        {
+            if (markup == null)
+            {
+                Message tmp = await this.message.client.SendMessage(this.from.id, text);
+                return tmp;
+            }
+            else
+            {
+                Message tmp = await this.message.client.SendMessage(this.from.id, text, markup);
+                return tmp;
+            }
         }
 
     }
@@ -284,11 +306,16 @@ namespace Bale.Objects
         public string? language_code { get; set; }
         public void set_state(string state)
         {
-            StateMachine.SetState(id, state);
+            StateMachine.SetState(this.id, state);
         }
         public void del_state()
         {
             StateMachine.DeleteState(id);
+        }
+
+        public string get_state()
+        {
+            return StateMachine.GetState(this.id);
         }
 
     }
@@ -330,10 +357,32 @@ namespace Bale.Objects
         [JsonIgnore]
         public Client client { get; internal set; }
 
-        public async Task<Message> reply(string text)
+        public async Task<Message> reply(string text, InlineKeyboardMarkup markup = null)
         {
-            Message tmp = await this.client.SendMessage(this.from.id, text);
-            return tmp;
+            if (markup == null)
+            {
+                Message tmp = await this.client.SendMessage(this.from.id, text);
+                return tmp;
+            }
+            else
+            {
+                Message tmp = await this.client.SendMessage(this.from.id, text, markup);
+                return tmp;
+            }
+        }
+
+        public async Task<Message> reply(string text, ReplyKeyboardMarkup markup = null)
+        {
+            if (markup == null)
+            {
+                Message tmp = await this.client.SendMessage(this.from.id, text);
+                return tmp;
+            }
+            else
+            {
+                Message tmp = await this.client.SendMessage(this.from.id, text, markup);
+                return tmp;
+            }
         }
 
         public async void pin()

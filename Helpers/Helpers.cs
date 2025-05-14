@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -94,31 +95,45 @@ namespace Bale.Helpers
             return new Objects.InlineKeyboardMarkup { inline_keyboard = _keyboard };
         }
     }
-    public class ApiSender
+
+    public class OTPResponse<Type>
     {
-        public async Task<string> SendUrl(string url, Dictionary<string, object>? parameters = null)
+        [JsonProperty("ok")]
+        public bool Ok { get; set; }
+
+        [JsonProperty("result")]
+        public Type Result { get; set; }
+
+        [JsonProperty("error")]
+        public string? Error { get; set; }
+    }
+
+    public class BaleOTP
+    {
+        public string client { get; set; }
+        public string client_secret { get; set; }
+        public BaleOTP(string username, string secret)
         {
-            HttpClient _http = new HttpClient();            
-
-            if (parameters != null && parameters.Count != 0)
+            client = username;
+            client_secret = secret;
+        }
+        private static readonly HttpClient _client = new HttpClient();
+        public async Task<object> sendCode(string phone)
+        {
+            var res = await _client.GetAsync($"https://aladdin4api.pythonanywhere.com/baleotp/balesharp?secret={this.client_secret}&username={this.client}&phone={phone}");
+            string result = await res.Content.ReadAsStringAsync();
+            if (res.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                url += "?";
-                foreach (var param in parameters)
-                {
-                    url += $"{param.Key}={param.Value}&";
-                }
-                // Remove the trailing '&' if parameters were added
-                url = url.TrimEnd('&');
+                
+                var response = JsonConvert.DeserializeObject<OTPResponse<int>>(result);
+                return response.Result;
             }
-
-            HttpResponseMessage res = await _http.GetAsync(url);
-            try { res.EnsureSuccessStatusCode(); }
-            catch (Exception ex)
+            else
             {
-                throw new Exception(ex.Message);
+                var response = JsonConvert.DeserializeObject<OTPResponse<int>>(result);
+                return response.Error;
             }
-            string content = await res.Content.ReadAsStringAsync();
-            return JsonConvert.SerializeObject(content);
         }
     }
+
 }
