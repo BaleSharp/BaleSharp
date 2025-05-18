@@ -42,6 +42,11 @@ namespace Bale.Helpers
             return this;
         }
 
+        public Objects.ReplyKeyboardMarkup EmptyMarkup()
+        {
+            return new Objects.ReplyKeyboardMarkup { keyboard = [] };
+        }
+
         public Objects.ReplyKeyboardMarkup Build()
         {
             if (_currentRow.Count > 0)

@@ -3,6 +3,7 @@ using Bale.Objects;
 using Bale.Helpers;
 using Bale.Enums;
 using Newtonsoft.Json;
+using System.Runtime.CompilerServices;
 
 namespace Bale
 {
@@ -12,6 +13,9 @@ namespace Bale
     public delegate Task PaymentHandler(Objects.Message message, Objects.SuccessfulPayment payment);
     public delegate Task PreCheckoutQueryHandler(Objects.PreCheckoutQuery precheckoutquery);
     public delegate Task EditedMessageHandler(Objects.Message message);
+    public delegate Task ContactHandler(Objects.Message msg, Objects.Contact contact);
+    public delegate Task DocumentHandler(Objects.Message msg, Objects.Document doc);
+    public delegate Task LocationHandler(Objects.Message msg, Objects.Location location);
 
 
 
@@ -30,6 +34,9 @@ namespace Bale
         public PaymentHandler OnSuccessfulPayment { get; set; }
         public PreCheckoutQueryHandler OnPreCheckoutQuery { get; set; }
         public EditedMessageHandler OnEditedMessage { get; set; }
+        public ContactHandler OnContact { get; set; }
+        public DocumentHandler OnDocument { get; set; }
+        public LocationHandler OnLocation { get; set; }
 
         private bool _isReceiving;
         private int _lastUpdateId;
@@ -52,10 +59,10 @@ namespace Bale
             if (_isReceiving) return;
 
             _isReceiving = true;
-            await Task.Run(ReceiveUpdates);
             var me = await this.getMe();
             Console.WriteLine($"--({me.username}) Started getting updates...");
             Console.WriteLine("Powered by BaleSharp\nDocs at : @BaleSharp");
+            await Task.Run(ReceiveUpdates);
         }
 
         public async void StopReceiving()
@@ -76,9 +83,23 @@ namespace Bale
                     foreach (var update in updates)
                     {
                         _lastUpdateId = update.update_id;
-
                         if (update.message != null)
                         {
+                            if (update.message.contact != null && OnContact != null)
+                            {
+                                await OnContact(update.message, update.message.contact);
+                            }
+
+                            if (update.message.document != null && OnDocument != null)
+                            {
+                                await OnDocument(update.message, update.message.document);
+                            }
+
+                            if (update.message.location != null && OnLocation != null)
+                            {
+                                await OnLocation(update.message, update.message.location);
+                            }
+
                             // Handle regular messages (non-command and not payment)
                             if (update.message.text != null && !update.message.text.StartsWith("/"))
                             {
@@ -99,17 +120,19 @@ namespace Bale
                                 await OnCommand(update.message, command, args);
                             }
 
-                            
-
                             // Handle successful payments (if needed)
                             if (update.message.successful_payment != null && OnSuccessfulPayment != null)
                             {
                                 await OnSuccessfulPayment(update.message, update.message.successful_payment);
                             }
+
                         }
-                        else if (update.edited_message != null && OnEditedMessage != null)
+                        else if (update.edited_message != null)
                         {
-                            await OnEditedMessage(update.edited_message);
+                            if(update.edited_message.text != null && OnEditedMessage != null)
+                            {
+                                await OnEditedMessage(update.edited_message);
+                            }
                         }
                         else if (update.callback_query != null && OnCallbackQuery != null)
                         {
@@ -307,6 +330,12 @@ namespace Bale
             };
             await client.ExecuteAsync("sendChatAction", dict);
         }
+
+        public static async void testMessage(this Client client, long ChatID)
+        {
+            await client.SendMessage(ChatID, "پیام تست بله شارپ\n اگر این پیام را دریافت میکنید به این معناست که با موفقیت توانستید بله شارپ را بر روی ربات خود نصب کنید\n کانال بله شارپ : @BaleSharp \n گروه پشتیبانی بله شارپ : @bleSharpGP");
+        }
+
         public static async void sendInvoice(this Client client, long chat_id, string title, string description, string payload, string provider_token, Objects.LabeledPrice[] prices, string? photo_url = null)
         {
             var dict = new Dictionary<string, object>
@@ -401,7 +430,7 @@ namespace Bale
             {
                 {"offset", offset},
                 {"limit", limit},
-                {"timout", timout}
+                {"timeout", timout}
             };
 
             string res = await client.ExecuteAsync("getUpdates", dict);

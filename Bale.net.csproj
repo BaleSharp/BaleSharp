@@ -7,17 +7,26 @@
 
 		<!-- NuGet Package Metadata -->
 		<PackageId>BaleSharp</PackageId>
-		<Version>1.5.7</Version>
+		<Version>1.5.8</Version>
 		<Authors>CodeWizaard</Authors>
 		<Company>Aladdin Team</Company>
 		<PackageDescription>a up to date and good package for making bots in Bale messager</PackageDescription>
-		<PackageTags>json;bots;telegram;messager;bale</PackageTags>
+		<PackageTags>json;bots;telegram;messager;bale;BaleBot;BaleSharp;csharp;api;webservice</PackageTags>
 		<PackageProjectUrl>https://github.com/Code-Wizaard/BaleSharp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Code-Wizaard/BaleSharp.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageIcon>icon.png</PackageIcon>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Copyright>Copyright © CodeWizaard 2025</Copyright>
+		<Title>BaleSharp</Title>
+		<Description>BaleSharp is the best and most popular package for making bots in bale messager with C#
+with a easy syntax and perfect options.</Description>
+		<PackageReleaseNotes>1. Added OnContact
+2. Added OnLocation
+3. Added OnDocument
+4. Added EmptyMarkup in replykeyboardbuilder
+5. Changed file_id to id and changed file_size to size</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>

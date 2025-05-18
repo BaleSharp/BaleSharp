@@ -151,9 +151,11 @@ namespace Bale.Objects
 
     public class File
     {
-        public string file_id { get; set; }
+        [JsonProperty("file_id")]
+        public string id { get; set; }
         public string file_unique_id { get; set; }
-        public int? file_size { get; set; }
+        [JsonProperty("file_size")]
+        public int? size { get; set; }
         public string file_path { get; set; }
     }
 
@@ -225,6 +227,12 @@ namespace Bale.Objects
                 Message tmp = await this.message.client.SendMessage(this.from.id, text, markup);
                 return tmp;
             }
+        }
+
+        public async Task<Message> answer(string text)
+        {
+            Message tmp = await this.message.client.SendMessage(this.from.id, text);
+            return tmp;
         }
 
         public async Task<Message> answer(string text, ReplyKeyboardMarkup markup)
@@ -356,6 +364,14 @@ namespace Bale.Objects
 
         [JsonIgnore]
         public Client client { get; internal set; }
+
+
+        public async Task<Message> reply(string text)
+        {
+            Message tmp = await this.client.SendMessage(this.from.id, text);
+            return tmp;
+        }
+
 
         public async Task<Message> reply(string text, InlineKeyboardMarkup markup = null)
         {
