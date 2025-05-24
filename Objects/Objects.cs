@@ -80,9 +80,9 @@ namespace Bale.Objects
         public string file_id { get; set; }
         public string file_unique_id { get; set; }
         public int duration { get; set; }
-        public string title { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
+        public string? title { get; set; }
+        public string? file_name { get; set; }
+        public string? mime_type { get; set; }
         public int? file_size { get; set; }
     }
 
@@ -90,9 +90,9 @@ namespace Bale.Objects
     {
         public string file_id { get; set; }
         public string file_unique_id { get; set; }
-        public PhotoSize thumbnail { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
+        public PhotoSize? thumbnail { get; set; }
+        public string? file_name { get; set; }
+        public string? mime_type { get; set; }
         public int? file_size { get; set; }
     }
 
@@ -103,8 +103,8 @@ namespace Bale.Objects
         public int width { get; set; }
         public int height { get; set; }
         public int duration { get; set; }
-        public string file_name { get; set; }
-        public string mime_type { get; set; }
+        public string? file_name { get; set; }
+        public string? mime_type { get; set; }
         public int? file_size { get; set; }
     }
 
@@ -205,6 +205,12 @@ namespace Bale.Objects
         public string username { get; set; }
         public string first_name { get; set; }
         public string last_name { get; set; }
+        [JsonIgnore]
+        public Client _client { get; set; }
+        public async void leave()
+        {
+            await _client.leaveChat(this.id);
+        }
     }
 
     public class CallbackQuery
@@ -350,7 +356,7 @@ namespace Bale.Objects
         public Animation? animation { get; set; }  // اختیاری  
         public Audio? audio { get; set; }  // اختیاری  
         public Document? document { get; set; }  // اختیاری
-        public PhotoSize? photo { get; set; }
+        public PhotoSize[]? photo { get; set; }
         public Sticker? sticker { get; set; }
         public Video? video { get; set; }  // اختیاری  
         public Voice? voice { get; set; }  // اختیاری  
@@ -368,7 +374,7 @@ namespace Bale.Objects
 
         public async Task<Message> reply(string text)
         {
-            Message tmp = await this.client.SendMessage(this.from.id, text);
+            Message tmp = await this.client.SendMessage(this.chat.id, text);
             return tmp;
         }
 
@@ -377,12 +383,12 @@ namespace Bale.Objects
         {
             if (markup == null)
             {
-                Message tmp = await this.client.SendMessage(this.from.id, text);
+                Message tmp = await this.client.SendMessage(this.chat.id, text);
                 return tmp;
             }
             else
             {
-                Message tmp = await this.client.SendMessage(this.from.id, text, markup);
+                Message tmp = await this.client.SendMessage(this.chat.id, text, markup);
                 return tmp;
             }
         }
@@ -391,12 +397,12 @@ namespace Bale.Objects
         {
             if (markup == null)
             {
-                Message tmp = await this.client.SendMessage(this.from.id, text);
+                Message tmp = await this.client.SendMessage(this.chat.id, text);
                 return tmp;
             }
             else
             {
-                Message tmp = await this.client.SendMessage(this.from.id, text, markup);
+                Message tmp = await this.client.SendMessage(this.chat.id, text, markup);
                 return tmp;
             }
         }

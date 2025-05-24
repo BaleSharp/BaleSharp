@@ -4,6 +4,7 @@ using Bale.Helpers;
 using Bale.Enums;
 using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
+using System.IO;
 
 namespace Bale
 {
@@ -16,6 +17,7 @@ namespace Bale
     public delegate Task ContactHandler(Objects.Message msg, Objects.Contact contact);
     public delegate Task DocumentHandler(Objects.Message msg, Objects.Document doc);
     public delegate Task LocationHandler(Objects.Message msg, Objects.Location location);
+    public delegate Task PhotoHandler(Objects.Message msg, PhotoSize[] Photos);
 
 
 
@@ -37,6 +39,7 @@ namespace Bale
         public ContactHandler OnContact { get; set; }
         public DocumentHandler OnDocument { get; set; }
         public LocationHandler OnLocation { get; set; }
+        public PhotoHandler OnPhoto { get; set; }
 
         private bool _isReceiving;
         private int _lastUpdateId;
@@ -76,13 +79,13 @@ namespace Bale
         {
             while (_isReceiving)
             {
+                var updates = await this.GetUpdates(_lastUpdateId + 1);
                 try
                 {
-                    var updates = await this.GetUpdates(_lastUpdateId + 1);
-
                     foreach (var update in updates)
                     {
                         _lastUpdateId = update.update_id;
+                        if(update != null)
                         if (update.message != null)
                         {
                             if (update.message.contact != null && OnContact != null)
@@ -98,6 +101,11 @@ namespace Bale
                             if (update.message.location != null && OnLocation != null)
                             {
                                 await OnLocation(update.message, update.message.location);
+                            }
+
+                            if(update.message.photo != null && OnPhoto != null)
+                            {
+                                await OnPhoto(update.message, update.message.photo);
                             }
 
                             // Handle regular messages (non-command and not payment)
@@ -129,7 +137,7 @@ namespace Bale
                         }
                         else if (update.edited_message != null)
                         {
-                            if(update.edited_message.text != null && OnEditedMessage != null)
+                            if (update.edited_message.text != null && OnEditedMessage != null)
                             {
                                 await OnEditedMessage(update.edited_message);
                             }
@@ -205,6 +213,138 @@ namespace Bale
 
         }
 
+        public static async Task<string> ExecuteMultipart(this Client client, string method, FileInfo file, Dictionary<string, object>? parameters = null, string fileFormFieldName = "photo")
+        {
+            string url = $"{client.BaseUrl}{client.Token}/{method}";
+
+            using var fileStream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read);
+            using var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("multipart/form-data");
+
+            using var form = new MultipartFormDataContent
+            {
+                { fileContent, fileFormFieldName, file.Name }
+            };
+
+            if (parameters != null)
+            {
+                foreach (var param in parameters)
+                {
+                    form.Add(new StringContent(param.Value.ToString()), param.Key);
+                }
+            }
+
+            var response = await _client.PostAsync(url, form);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                string content = await response.Content.ReadAsStringAsync();
+                return content;
+            }
+            else
+            {
+                string content = $"error:{response.StatusCode}";
+                return content;
+            }
+        }
+
+        public static async Task<Message> SendVideo(this Client client, long ChatID, FileInfo file, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteMultipart("sendVideo", file, dict, fileFormFieldName: "video");
+            return JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res).Result;
+        }
+
+
+
+        public static async Task<Objects.Message> SendVideo(this Client client, long chatID, string FileIdOrURL, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID},
+                {"from_chat_id", null},
+                {"video", FileIdOrURL}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteAsync("sendVideo", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            return tmp.Result;
+        }
+
+        public static async Task<Message> SendDocument(this Client client, long ChatID, FileInfo file, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteMultipart("sendDocument", file, dict, fileFormFieldName: "document");
+            return JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendDocument(this Client client, long chatID, string FileIdOrURL, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID},
+                {"from_chat_id", null},
+                {"document", FileIdOrURL}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteAsync("sendDocument", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            return tmp.Result;
+        }
+
+        public static async Task<Message> SendPhoto(this Client client, long chatID, FileInfo file, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteMultipart("sendPhoto", file, dict);
+            return JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendPhoto(this Client client, long chatID, string FileIdOrURL, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID},
+                {"from_chat_id", null},
+                {"photo", FileIdOrURL}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteAsync("sendPhoto", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Message>>(res);
+            return tmp.Result;
+        }
+
+        
+
         public static async Task<Objects.User> getMe(this Client client)
         {
             string res = await client.ExecuteAsync("getme");
@@ -219,6 +359,23 @@ namespace Bale
             };
             string res = await client.ExecuteAsync("getChat", dict);
             var tmp = JsonConvert.DeserializeObject<ApiResponse<Objects.Chat>>(res);
+            return tmp.Result;
+        }
+
+        public static async Task<Objects.Message> SendLocation(this Client client, long chatID, float latitude, float longitude, float? horizontal_accuracy = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", chatID},
+                {"latitude", latitude},
+                {"longitude", longitude}
+            };
+            if (horizontal_accuracy != null)
+            {
+                dict.Add("horizontal_accuracy", horizontal_accuracy);
+            }
+            string res = await client.ExecuteAsync("sendLocation", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
             return tmp.Result;
         }
 
@@ -254,7 +411,7 @@ namespace Bale
         {
             var dict = new Dictionary<string, object>
             {
-                {"chat_id", UserID},
+                {"user_id", UserID},
                 {"chat_id", ChatID}
             };
             string res = await client.ExecuteAsync("banChatMember", dict);
@@ -353,6 +510,19 @@ namespace Bale
             }
             await client.ExecuteAsync("sendInvoice", dict);
         }
+
+        public static async Task<string> answerCallbackquery(this Client client, CallbackQuery callbackquery, string text)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"callback_query_id", callbackquery.id},
+                {"text", text}
+            };
+            string res = await client.ExecuteAsync("answerCallbackQuery", dict);
+            var tmp = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
+            return res;
+        }
+
         public static async Task<Objects.Message> editTextMessage(this Client client, Objects.Message msg, string text)
         {
             var dict = new Dictionary<string, object>
@@ -454,7 +624,6 @@ namespace Bale
                         update.callback_query.message.client = client;
                 }
             }
-
             return response?.Result ?? Array.Empty<Objects.Update>();
         }
     }
