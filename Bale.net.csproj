@@ -7,11 +7,11 @@
 
 		<!-- NuGet Package Metadata -->
 		<PackageId>BaleSharp</PackageId>
-		<Version>1.5.9-Beta</Version>
+		<Version>2.0.0</Version>
 		<Authors>CodeWizaard</Authors>
 		<Company>Aladdin Team</Company>
-		<PackageDescription>a up to date and good package for making bots in Bale messager</PackageDescription>
-		<PackageTags>json;bots;telegram;messager;bale;BaleBot;BaleSharp;csharp;api;webservice</PackageTags>
+		<PackageDescription>Most popular package for making bots in Bale messager with C#, with best syntax and easy learning</PackageDescription>
+		<PackageTags>json;bots;telegram;messager;bale;BaleBot;BaleSharp;csharp;api;webservice;wrapper;bot;</PackageTags>
 		<PackageProjectUrl>https://github.com/Code-Wizaard/BaleSharp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Code-Wizaard/BaleSharp.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
@@ -23,12 +23,10 @@
 		<Description>BaleSharp is the best and most popular package for making bots in bale messager with C#
 with a easy syntax and perfect options.</Description>
 		<PackageReleaseNotes>
-			1. Fixed Deserialize Error
-			2. Added SendPhoto
-			3. Added SendLocation
-			4. Added SendVideo
-			5. Added SendDocument
-			6. Added OnPhoto
+			1. Added SendAudio
+			2. Added SendVoice
+			3. Added SendAnimation
+			4. Added answerCallbackQuery
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

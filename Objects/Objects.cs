@@ -221,39 +221,13 @@ namespace Bale.Objects
         public string inline_message_id { get; set; }
         public string data { get; set; }
 
-        public async Task<Message> answer(string text, InlineKeyboardMarkup markup)
+        public async Task<bool> answer(string text)
         {
-            if (markup == null)
-            {
-                Message tmp = await this.message.client.SendMessage(this.from.id, text);
-                return tmp;
-            }
-            else
-            {
-                Message tmp = await this.message.client.SendMessage(this.from.id, text, markup);
-                return tmp;
-            }
-        }
-
-        public async Task<Message> answer(string text)
-        {
-            Message tmp = await this.message.client.SendMessage(this.from.id, text);
+            bool tmp = await this.message.client.answerCallbackquery(this, text);
             return tmp;
         }
 
-        public async Task<Message> answer(string text, ReplyKeyboardMarkup markup)
-        {
-            if (markup == null)
-            {
-                Message tmp = await this.message.client.SendMessage(this.from.id, text);
-                return tmp;
-            }
-            else
-            {
-                Message tmp = await this.message.client.SendMessage(this.from.id, text, markup);
-                return tmp;
-            }
-        }
+        
 
     }
 

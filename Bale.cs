@@ -5,6 +5,7 @@ using Bale.Enums;
 using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using System.IO;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Bale
 {
@@ -85,71 +86,71 @@ namespace Bale
                     foreach (var update in updates)
                     {
                         _lastUpdateId = update.update_id;
-                        if(update != null)
-                        if (update.message != null)
-                        {
-                            if (update.message.contact != null && OnContact != null)
+                        if (update != null)
+                            if (update.message != null)
                             {
-                                await OnContact(update.message, update.message.contact);
-                            }
-
-                            if (update.message.document != null && OnDocument != null)
-                            {
-                                await OnDocument(update.message, update.message.document);
-                            }
-
-                            if (update.message.location != null && OnLocation != null)
-                            {
-                                await OnLocation(update.message, update.message.location);
-                            }
-
-                            if(update.message.photo != null && OnPhoto != null)
-                            {
-                                await OnPhoto(update.message, update.message.photo);
-                            }
-
-                            // Handle regular messages (non-command and not payment)
-                            if (update.message.text != null && !update.message.text.StartsWith("/"))
-                            {
-                                if (OnMessage != null)
+                                if (update.message.contact != null && OnContact != null)
                                 {
-                                    if (debug) Console.WriteLine($"Message recieved : {update.message}");
-                                    await OnMessage(update.message);
+                                    await OnContact(update.message, update.message.contact);
+                                }
+
+                                if (update.message.document != null && OnDocument != null)
+                                {
+                                    await OnDocument(update.message, update.message.document);
+                                }
+
+                                if (update.message.location != null && OnLocation != null)
+                                {
+                                    await OnLocation(update.message, update.message.location);
+                                }
+
+                                if (update.message.photo != null && OnPhoto != null)
+                                {
+                                    await OnPhoto(update.message, update.message.photo);
+                                }
+
+                                // Handle regular messages (non-command and not payment)
+                                if (update.message.text != null && !update.message.text.StartsWith("/"))
+                                {
+                                    if (OnMessage != null)
+                                    {
+                                        if (debug) Console.WriteLine($"Message recieved : {update.message}");
+                                        await OnMessage(update.message);
+                                    }
+                                }
+
+                                // Handle commands (messages starting with "/")
+                                if (update.message.text?.StartsWith("/") == true && OnCommand != null)
+                                {
+                                    string[] parts = update.message.text.Split(' ');
+                                    var command = parts[0][1..]; // Remove the '/'
+                                    var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
+                                    if (debug) Console.WriteLine($"Command recieved : {update.message}");
+                                    await OnCommand(update.message, command, args);
+                                }
+
+                                // Handle successful payments (if needed)
+                                if (update.message.successful_payment != null && OnSuccessfulPayment != null)
+                                {
+                                    await OnSuccessfulPayment(update.message, update.message.successful_payment);
+                                }
+
+                            }
+                            else if (update.edited_message != null)
+                            {
+                                if (update.edited_message.text != null && OnEditedMessage != null)
+                                {
+                                    await OnEditedMessage(update.edited_message);
                                 }
                             }
-
-                            // Handle commands (messages starting with "/")
-                            if (update.message.text?.StartsWith("/") == true && OnCommand != null)
+                            else if (update.callback_query != null && OnCallbackQuery != null)
                             {
-                                string[] parts = update.message.text.Split(' ');
-                                var command = parts[0][1..]; // Remove the '/'
-                                var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
-                                if (debug) Console.WriteLine($"Command recieved : {update.message}");
-                                await OnCommand(update.message, command, args);
+                                await OnCallbackQuery(update.callback_query);
                             }
-
-                            // Handle successful payments (if needed)
-                            if (update.message.successful_payment != null && OnSuccessfulPayment != null)
+                            else if (update.pre_checkout_query != null && OnPreCheckoutQuery != null)
                             {
-                                await OnSuccessfulPayment(update.message, update.message.successful_payment);
+                                await OnPreCheckoutQuery(update.pre_checkout_query);
                             }
-
-                        }
-                        else if (update.edited_message != null)
-                        {
-                            if (update.edited_message.text != null && OnEditedMessage != null)
-                            {
-                                await OnEditedMessage(update.edited_message);
-                            }
-                        }
-                        else if (update.callback_query != null && OnCallbackQuery != null)
-                        {
-                            await OnCallbackQuery(update.callback_query);
-                        }
-                        else if (update.pre_checkout_query != null && OnPreCheckoutQuery != null)
-                        {
-                            await OnPreCheckoutQuery(update.pre_checkout_query);
-                        }
                     }
                 }
                 catch (Exception ex)
@@ -235,7 +236,7 @@ namespace Bale
             }
 
             var response = await _client.PostAsync(url, form);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 string content = await response.Content.ReadAsStringAsync();
@@ -343,7 +344,84 @@ namespace Bale
             return tmp.Result;
         }
 
-        
+        public static async Task<Objects.Message> SendAudio(this Client client, long ChatID, string FileIdOrUrl, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"audio", FileIdOrUrl}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteAsync("sendAudio", dict);
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendAudio(this Client client, long ChatID, FileInfo audio, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteMultipart("sendAudio", audio, dict, "audio");
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendVoice(this Client client, long ChatID, string FileIdOrUrl, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"voice", FileIdOrUrl}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteAsync("sendVoice", dict);
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendVoice(this Client client, long ChatID, FileInfo voice, string? caption = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID}
+            };
+            if (!string.IsNullOrEmpty(caption))
+            {
+                dict.Add("caption", caption);
+            }
+            string res = await client.ExecuteMultipart("sendVoice", voice, dict, "voice");
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendAnimation(this Client client, long ChatID, string FileIdOrURL)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"animation", FileIdOrURL}
+            };
+            string res = await client.ExecuteAsync("sendAnimation", dict);
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendAnimation(this Client client, long ChatID, FileInfo animation)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID}
+            };
+            string res = await client.ExecuteMultipart("sendAnimation", animation, dict, "animation");
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
 
         public static async Task<Objects.User> getMe(this Client client)
         {
@@ -511,16 +589,20 @@ namespace Bale
             await client.ExecuteAsync("sendInvoice", dict);
         }
 
-        public static async Task<string> answerCallbackquery(this Client client, CallbackQuery callbackquery, string text)
+        public static async Task<bool> answerCallbackquery(this Client client, CallbackQuery callbackquery, string text, bool? show_alert = null)
         {
             var dict = new Dictionary<string, object>
             {
                 {"callback_query_id", callbackquery.id},
                 {"text", text}
             };
+            if (show_alert != null)
+            {
+                dict.Add("show_alert", show_alert);
+            }
             string res = await client.ExecuteAsync("answerCallbackQuery", dict);
             var tmp = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
-            return res;
+            return tmp.Result;
         }
 
         public static async Task<Objects.Message> editTextMessage(this Client client, Objects.Message msg, string text)
