@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,6 +25,24 @@ namespace Bale.Enums
         Private,
         Group,
         Channel
+    }
+
+    public enum TransactionStatus
+    {
+        [EnumMember(Value = "pending")]
+        Pending,
+
+        [EnumMember(Value = "succeed")]
+        Succeed,
+
+        [EnumMember(Value = "failed")]
+        Failed,
+
+        [EnumMember(Value = "rejected")]
+        Rejected,
+
+        [EnumMember(Value = "timeout")]
+        Timeout
     }
 
 

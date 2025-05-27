@@ -68,15 +68,15 @@ namespace Bale.Helpers
             _currentRow = new List<Objects.InlineKeyboardButton>();
         }
 
-        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, Objects.WebAppInfo webApp = null, string copyText = null)
+        public InlineKeyboardBuilder AddButton(string text, string callbackData = null, string url = null, string webApp = null, string copyText = null)
         {
             _currentRow.Add(new Objects.InlineKeyboardButton
             {
                 text = text,
                 callback_data = callbackData,
                 url = url,
-                web_app = webApp,
-                copy_text = copyText != null ? new Objects.CopyTextButton { text = copyText } : null
+                web_app = webApp != null ? new Objects.WebAppInfo(webApp) : null,
+                copy_text = copyText != null ? new Objects.CopyTextButton(copyText) : null
             });
             return this;
         }

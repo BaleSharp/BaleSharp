@@ -6,6 +6,8 @@ using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace Bale
 {
@@ -19,6 +21,9 @@ namespace Bale
     public delegate Task DocumentHandler(Objects.Message msg, Objects.Document doc);
     public delegate Task LocationHandler(Objects.Message msg, Objects.Location location);
     public delegate Task PhotoHandler(Objects.Message msg, PhotoSize[] Photos);
+    public delegate Task NewUserHandler(Objects.User[] new_users);
+    public delegate Task LeftUserHandler(Objects.User left_user);
+    public delegate Task WebAppDataHandler(Objects.WebAppData data);
 
 
 
@@ -41,6 +46,9 @@ namespace Bale
         public DocumentHandler OnDocument { get; set; }
         public LocationHandler OnLocation { get; set; }
         public PhotoHandler OnPhoto { get; set; }
+        public NewUserHandler OnNewUser { get; set; }
+        public LeftUserHandler OnLeftUser { get; set; }
+        public WebAppDataHandler OnWebappData { get; set; }
 
         private bool _isReceiving;
         private int _lastUpdateId;
@@ -89,6 +97,21 @@ namespace Bale
                         if (update != null)
                             if (update.message != null)
                             {
+                                if(update.message.new_chat_members != null && OnNewUser != null)
+                                {
+                                    await OnNewUser(update.message.new_chat_members);
+                                }
+
+                                if(update.message.left_chat_member != null && OnLeftUser != null)
+                                {
+                                    await OnLeftUser(update.message.left_chat_member);
+                                }
+
+                                if(update.message.web_app_data != null && OnWebappData != null)
+                                {
+                                    await OnWebappData(update.message.web_app_data);
+                                }
+
                                 if (update.message.contact != null && OnContact != null)
                                 {
                                     await OnContact(update.message, update.message.contact);
@@ -263,7 +286,23 @@ namespace Bale
             return JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res).Result;
         }
 
+        public static async Task<Objects.Transaction> InquireTransaction(this Client client, string transaction_id)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"transaction_id", transaction_id}
+            };
+            string res = await client.ExecuteAsync("inquireTransaction", dict);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new JsonStringEnumConverter() }
+            };
 
+            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<Objects.Transaction>>(res, options);
+
+            return apiResponse.Result;
+        }
 
         public static async Task<Objects.Message> SendVideo(this Client client, long chatID, string FileIdOrURL, string? caption = null)
         {
@@ -457,6 +496,36 @@ namespace Bale
             return tmp.Result;
         }
 
+        public static async Task<Objects.Message> SendContact(this Client client, long ChatID, string phone_number, string first_name, string? last_name = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"first_name", first_name}                
+            };
+            if (!string.IsNullOrEmpty(last_name))
+            {
+                dict.Add("last_name", last_name);
+            }
+            string res = await client.ExecuteAsync("sendContact", dict);
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
+        public static async Task<Objects.Message> SendContact(this Client client, long ChatID, Objects.Contact contact)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"chat_id", ChatID},
+                {"first_name", contact.first_name}
+            };
+            if (!string.IsNullOrEmpty(contact.last_name))
+            {
+                dict.Add("last_name", contact.last_name);
+            }
+            string res = await client.ExecuteAsync("sendContact", dict);
+            return JsonConvert.DeserializeObject<ApiResponse<Message>>(res).Result;
+        }
+
         public static async void PinMessage(this Client client, Message msg, long ChatID)
         {
             var dict = new Dictionary<string, object>
@@ -634,6 +703,18 @@ namespace Bale
             var tmp = JsonConvert.DeserializeObject<ApiResponse<int>>(res);
             return tmp.Result;
         }
+
+        public static async Task<bool> logout(this Client client)
+        {
+            string res = await client.ExecuteAsync("logout");
+            return JsonConvert.DeserializeObject<ApiResponse<bool>>(res).Result;
+        }
+
+        public static async void close(this Client client)
+        {
+            await client.ExecuteAsync("close");
+        }
+
         public static async Task<Message> ForwardMessage(this Client client, Message msg, long ChatID)
         {
             ///<summary>forwards message into another chat</summary>

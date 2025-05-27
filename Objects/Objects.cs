@@ -161,11 +161,21 @@ namespace Bale.Objects
 
     public class WebAppInfo
     {
+        public WebAppInfo(string url)
+        {
+            this.url = url;
+        }
+
         public string url { get; set; }
     }
 
     public class CopyTextButton
     {
+        public CopyTextButton(string text)
+        {
+            this.text = text;
+        }
+
         public string text { get; set; }
     }
 
@@ -211,6 +221,11 @@ namespace Bale.Objects
         {
             await _client.leaveChat(this.id);
         }
+    }
+
+    public class WebAppData
+    {
+        public string data { get; set; }
     }
 
     public class CallbackQuery
@@ -308,8 +323,22 @@ namespace Bale.Objects
 
     }
 
+    public class Transaction
+    {
+        public string id { get; set; }
+        public TransactionStatus status { get; set; }
+        public int userID { get; set; }
+        public int amount { get; set; }
+        public int createdAt { get; set; }
+    }
+
     public class LabeledPrice
     {
+        public LabeledPrice(string Label, int Amount)
+        {
+            label = Label;
+            amount = Amount;
+        }
         public string label { get; set; }
         public int amount { get; set; }
     }
@@ -337,9 +366,10 @@ namespace Bale.Objects
         public string? caption { get; set; }  // اختیاری  
         public Contact? contact { get; set; }  // اختیاری  
         public Location? location { get; set; }  // اختیاری  
-        public List<User>? new_chat_members { get; set; }  // اختیاری - آرایه  
+        public User[]? new_chat_members { get; set; }  // اختیاری - آرایه  
         public User? left_chat_member { get; set; }  // اختیاری  
         public SuccessfulPayment? successful_payment { get; set; }
+        public WebAppData web_app_data { get; set; }
         public InlineKeyboardButton? reply_markup { get; set; }  // اختیاری  
 
         [JsonIgnore]
