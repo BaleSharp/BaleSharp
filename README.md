@@ -21,54 +21,68 @@ using Bale;
 using Newtonsoft.Json;
 
 
-int YOUR_CHAT_ID = 2035204913;
-string token = "1782917547:nJGgN2rH1fyXDYe9JnfXWai";
+int YOUR_CHAT_ID = 000000000;
+string token = "TOKEN";
 Bale.Client cli = new Client(token);
-Bale.Message m = await cli.SendMessage(YOUR_CHAT_ID, "This is the test of the First BaleSharp bot, Made by CodeWizaard");
 
-Bale.User me = await cli.getMe();
-
-Console.WriteLine($"bot {me.first_name} started...");
+cli.testMessage(YOUR_CHAT_ID);
 
 
-int lastUpdateId = 0;
-
-while (true)
+try
 {
-    try
+    cli.OnCommand = async (message, command, args) =>
     {
-        // Create parameters with offset to get only new updates
-
-        int tmp = lastUpdateId + 1;
-        Update[] u = await cli.GetUpdates(tmp);
-        if (u != null && u.Length > 0)
+        switch (command)
         {
-            foreach (Bale.Update update in u)
-            {
-                // Update our last processed ID
-                lastUpdateId = update.update_id;
+            case "start": await cli.reply_to(message, "Welcome to this bot, This bot is made by BaleSharp"); break;
+        }
+    };
 
-                // Check if this is a message with text
-                if (update.message?.text != null)
-                {
-                    Console.WriteLine($"Received: {update.message.text}");
-                    await cli.reply_to(update.message, $"Echo : {update.message.text}");
-                }
-            }
-        }
-        else
-        {
-            Console.WriteLine("No new updates...");
-        }
-    }
-    catch (Exception ex)
+    cli.OnMessage = async (message) =>
     {
-        await cli.SendMessage(YOUR_CHAT_ID, $"Error : {ex.Message}");
-        break;
-    }
+        switch (message.text)
+        {
+            case "Inline":
+                var key = new InlineKeyboardBuilder().AddButton("CallbackButton", "call")
+                .NewRow()
+                .AddButton("urlButton", url: "https://ble.ir/BaleSharp")
+                .NewRow()
+                .AddButton("copyTextButton", copyText:"text is copied")
+                .Build();
+                await cli.reply_to(message, "Here is some of Inline buttons", key); 
+                break;
+            case "Reply":
+                var keyboard = new ReplyKeyboardBuilder().AddButton("Made by")
+                .NewRow()
+                .AddButton("BaleSharp")
+                .Build();
+                await cli.reply_to(message, "Here are some ReplyKeyboard buttons", keyboard);
+                break;
+            default:
+                await cli.reply_to(message, $"You said : {message.text}");
+                break;
+        }
+    };
 
-    // Add a small delay to avoid hitting rate limits
-    await Task.Delay(1000);
+    
+    cli.OnCallbackQuery = async (callback_query) =>
+    {
+        switch (callback_query.data)
+        {
+            case "call":
+                await cli.SendMessage(callback_query.from.id, "callback_query button clicked!");
+                break;
+        }
+    };
+    cli.StartReceiving();
+    await Task.Delay(-1);
+}catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
+finally
+{
+    cli.StopReceiving();
 }
 ```
 ---
