@@ -35,7 +35,10 @@ with a easy syntax and perfect options.</Description>
 
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<None Include="icon.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="icon.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

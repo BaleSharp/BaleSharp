@@ -113,6 +113,21 @@ namespace Bale.Helpers
         public string? Error { get; set; }
     }
 
+    public class ApiResponse<T>
+    {
+        [JsonProperty("ok")]
+        public bool Ok { get; set; }
+
+        [JsonProperty("result")]
+        public T Result { get; set; }
+
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
+        [JsonProperty("error_code")]
+        public int? ErrorCode { get; set; }
+    }
+
     public class BaleOTP
     {
         public string client { get; set; }
