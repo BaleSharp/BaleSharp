@@ -7,7 +7,7 @@
 
 		<!-- NuGet Package Metadata -->
 		<PackageId>BaleSharp</PackageId>
-		<Version>2.1.0</Version>
+		<Version>2.1.1</Version>
 		<Authors>CodeWizaard</Authors>
 		<Company>Aladdin Team</Company>
 		<PackageDescription>Most popular package for making bots in Bale messager with C#, with best syntax and easy learning</PackageDescription>
@@ -23,13 +23,10 @@
 		<Description>BaleSharp is the best and most popular package for making bots in bale messager with C#
 with a easy syntax and perfect options.</Description>
 		<PackageReleaseNotes>
-			v2.1.0 Changes :
-			1. Added Objects.Transaction
-			2. Added InquireTransaction
-			3. Added Constructors to `LabledPrice` and `CopyTextButton` and `WebAppInfo`
-			4. Added `logout` and `close`
-			5. Changed input type of webapp button in inlines, from WebAppInfo to String
-			6. Fixed some bugs
+			v2.1.1 Changes :
+			1. Added `OnAudio` `OnSticker` `OnVideo`
+			2. Added ReplyKeyboardRemove
+			3. Fixed some bugs in Objects, Updates and keyboards
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

@@ -372,7 +372,7 @@ namespace Bale
             };
             string res = await client.ExecuteAsync("banChatMember", dict);
             var tmp = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
-            return tmp.Result;
+            return tmp.Result != null ? tmp.Result : false;
         }
 
         public static async Task<Objects.Message> SendMessage(this Client client, long ChatID, string text, object? reply_markup = null, int? reply_to_id = null)
@@ -405,7 +405,7 @@ namespace Bale
             try
             {
                 var m = JsonConvert.DeserializeObject<ApiResponse<Objects.Message>>(res);
-                return m.Result;
+                return m.Result != null ? m.Result : new Message();
             }
             catch (Exception e)
             {
@@ -440,7 +440,8 @@ namespace Bale
                 {"chat_id", chat_id}
             };
             string res = await client.ExecuteAsync("getChatMembersCount", dict);
-            return JsonConvert.DeserializeObject<ApiResponse<int>>(res).Result;
+            int result = JsonConvert.DeserializeObject<ApiResponse<int>>(res).Result;
+            return result != null ? result : 0;
         }
 
         public static async void sendChatAction(this Client client, long chatID, ChatAction mode)
@@ -458,8 +459,25 @@ namespace Bale
             await client.SendMessage(ChatID, "پیام تست بله شارپ\n اگر این پیام را دریافت میکنید به این معناست که با موفقیت توانستید بله شارپ را بر روی ربات خود نصب کنید\n کانال بله شارپ : @BaleSharp \n گروه پشتیبانی بله شارپ : @bleSharpGP");
         }
 
+        public static async void ReplyKeyboardRemove(this Client client, bool confirm)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                {"remove_keyboard", confirm}
+            };
+            await client.ExecuteAsync("ReplyKeyboardRemove", dict);
+        }
+
         public static async void sendInvoice(this Client client, long chat_id, string title, string description, string payload, string provider_token, Objects.LabeledPrice[] prices, string? photo_url = null)
         {
+            /// <summary>Sends an message including an invoice for user to pay</summary>
+            /// <param name="chat_id">The chatID that invoice should be send there</param>
+            /// <param name="title">The title of invoice</param>
+            /// <param name="description">the description of invoice</param>
+            /// <param name="payload">a data that will return after successful payment (user won't see this)</param>
+            /// <param name="provider_token">the card number or wallet token of reciever</param>
+            /// <param name="prices">a array of prices</param>
+            /// <param name="photo_url">url of photo that could be sent in invoice (OPTIONAL)</param>
             var dict = new Dictionary<string, object>
             {
                 {"chat_id", chat_id},
@@ -556,6 +574,9 @@ namespace Bale
                 {"chat_id", msg.chat.id},
                 {"message_id", msg.id}
             };
+            /// <summary>Deletes a message from specified chat</summary>
+            /// <param name="msg">the message to delete from it's chat</param>
+            /// <returns>True if success</returns>
             string res = await client.ExecuteAsync("deleteMessage", dict);
             var m = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
             return m.Result;
@@ -566,6 +587,9 @@ namespace Bale
             {
                 {"chat_id", chatID}
             };
+            /// <summary>leaves a specified chat (Group or channel)</summary>
+            /// <param name="chatID">the chat id of group or channel</param>
+            /// <returns>true if success</returns>
             string res = await client.ExecuteAsync("leaveChat", dict);
             var tmp = JsonConvert.DeserializeObject<ApiResponse<bool>>(res);
             return tmp.Result;

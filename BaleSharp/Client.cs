@@ -19,6 +19,9 @@ namespace Bale
     public delegate Task DocumentHandler(Objects.Message msg, Objects.Document doc);
     public delegate Task LocationHandler(Objects.Message msg, Objects.Location location);
     public delegate Task PhotoHandler(Objects.Message msg, PhotoSize[] Photos);
+    public delegate Task VideoHandler(Objects.Message msg, Video video);
+    public delegate Task StickerHandler(Objects.Message msg, Objects.Sticker sticker);
+    public delegate Task AudioHandler(Objects.Message msg, Objects.Audio audio);
     public delegate Task NewUserHandler(Objects.User[] new_users);
     public delegate Task LeftUserHandler(Objects.User left_user);
     public delegate Task WebAppDataHandler(Objects.WebAppData data);
@@ -41,6 +44,9 @@ namespace Bale
         public DocumentHandler OnDocument { get; set; }
         public LocationHandler OnLocation { get; set; }
         public PhotoHandler OnPhoto { get; set; }
+        public VideoHandler OnVideo { get; set; }
+        public AudioHandler OnAudio { get; set; }
+        public StickerHandler OnSticker { get; set; }
         public NewUserHandler OnNewUser { get; set; }
         public LeftUserHandler OnLeftUser { get; set; }
         public WebAppDataHandler OnWebappData { get; set; }
@@ -125,6 +131,21 @@ namespace Bale
                                 if (update.message.photo != null && OnPhoto != null)
                                 {
                                     await OnPhoto(update.message, update.message.photo);
+                                }
+
+                                if (update.message.audio != null && OnAudio != null)
+                                {
+                                    await OnAudio(update.message, update.message.audio);
+                                }
+
+                                if (update.message.sticker != null && OnSticker != null)
+                                {
+                                    await OnSticker(update.message, update.message.sticker);
+                                }
+
+                                if (update.message.video != null && OnVideo != null)
+                                {
+                                    await OnVideo(update.message, update.message.video);
                                 }
 
                                 // Handle regular messages (non-command and not payment)

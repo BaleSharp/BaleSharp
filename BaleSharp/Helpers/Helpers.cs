@@ -44,7 +44,7 @@ namespace Bale.Helpers
 
         public Objects.ReplyKeyboardMarkup EmptyMarkup()
         {
-            return new Objects.ReplyKeyboardMarkup { keyboard = [] };
+            return new Objects.ReplyKeyboardMarkup { keyboard = new List<List<Objects.KeyboardButton>>()};
         }
 
         public Objects.ReplyKeyboardMarkup Build()

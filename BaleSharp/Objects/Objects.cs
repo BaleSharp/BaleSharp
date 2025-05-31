@@ -20,7 +20,7 @@ namespace Bale.Objects
         public string invoice_payload { get; set; }
         [JsonIgnore]
         public Client client { get; internal set; }
-        public async void answer(bool ok, string errorMsg = null)
+        public async void answer(bool ok, string? errorMsg = null)
         {
             var dict = new Dictionary<string, object>
             {
